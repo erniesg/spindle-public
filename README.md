@@ -6,11 +6,11 @@ Spindle records where your attention goes (a native Mac/Windows capture app and 
 
 ## Try it
 
-- **Hosted demo:** <https://spindle.berlayar.ai>
-- **Judge sign-in:** use the demo account credentials in `demo.txt`, uploaded with the hackathon submission. Credentials are deliberately not in this repository.
-- **Downloads:** <https://spindle.berlayar.ai/downloads> currently serves an Apple Silicon Mac test build and the Chrome extension, with a `SHA256SUMS.txt`.
+1. Go to **<https://spindle.berlayar.ai>**.
+2. Sign in with the demo account credentials in **`demo.txt`**, uploaded with the hackathon submission. Follow the demo journey steps in that file. Credentials are deliberately not in this repository.
+3. Email the demo's connected inbox a request, for example an ID photo and a form to fill. Spindle picks it up, prepares the outputs and stops at a draft for you to review. Nothing is sent until you click Send.
 
-Suggested path: sign in, connect Google once (one consent for Gmail and Drive, with Google Picker for `drive.file` folder access), email the connected inbox a request that needs a photo and a form, and watch the preparation run until it stops at a draft for your approval.
+Time tracking and blocking: the Mac app (Apple Silicon test build) and the Chrome extension are at <https://spindle.berlayar.ai/downloads>, with a `SHA256SUMS.txt`. Windows is source-only in this repository.
 
 ## How we use NVIDIA Nemotron
 
