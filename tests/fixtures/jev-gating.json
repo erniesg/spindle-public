@@ -1,0 +1,34 @@
+{
+  "purpose": "Learn eigenvectors and how a matrix transforms them",
+  "source_kind": "invented static HTML served only by the run-owned loopback fixture; no personal browsing",
+  "model": "jev-1.14.0",
+  "question_revision": "resource-purpose-v2",
+  "thresholds": {"choice_relevant_probability": 0.9, "choice_confidence": 0.8, "score_minimum": 3, "score_confidence": 0.8, "noul_minimum": 0.9},
+  "cases": [
+    {
+      "id": "lesson",
+      "path": "/r/7a1e9",
+      "expected": "allow",
+      "title": "Matrix transformations: an eigenvector lesson",
+      "description": "An explanation and worked example of matrix eigenvectors.",
+      "text": "An eigenvector of a matrix A is a nonzero vector v for which Av equals lambda times v. The transformation may stretch or reverse the vector, but its direction lies on the same line. Lambda is the eigenvalue. For example, let A be the diagonal matrix with entries 2 and 3. Multiplying the vector (1, 0) by A gives (2, 0), so (1, 0) is an eigenvector with eigenvalue 2. Multiplying (0, 1) gives (0, 3), so (0, 1) is an eigenvector with eigenvalue 3. A vector that changes direction under A is not an eigenvector of A."
+    },
+    {
+      "id": "misleading",
+      "path": "/r/4c8b2",
+      "expected": "deny-or-uncertain",
+      "title": "Matrix study guide",
+      "description": "A fictional film-club discussion, not a mathematics lesson.",
+      "text": "Our invented film club is discussing a science-fiction story called The Matrix. This page reviews its chase scenes, costumes, soundtrack and fictional characters. The group is choosing music for a themed movie night. It contains no explanation or worked example of mathematical vectors, eigenvalues or matrix transformations. A matching word in a movie title does not make this a mathematics lesson."
+    },
+    {
+      "id": "mixed",
+      "path": "/r/9d3f6",
+      "expected": "uncertain",
+      "title": "Eigenvectors and other resources",
+      "description": "A mixed index of links, without a lesson body.",
+      "text": "Directory: eigenvectors; matrix films; music playlists; colour palettes; shopping; linear algebra course links. Select a link to leave this index. This page contains only a mixed list of destinations and does not explain any of their subjects."
+    }
+  ],
+  "limits": "Manual expected labels are evaluation metadata and must never be included in model state. Offline native-protocol responses demonstrate plumbing, not semantic accuracy. Only an independently reviewed, separately approved bounded live pilot may test actual Jev outputs."
+}

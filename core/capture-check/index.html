@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Spindle — Capture Check</title><link rel="stylesheet" href="/style.css"><script type="module" src="/ui.js"></script></head>
+<body>
+<main>
+  <header><div><span class="brand">Spindle</span><h1>See what was captured</h1></div><span id="status" role="status">Starting native reader…</span></header>
+  <p class="intro">A small, local test of native window and text capture. Start a test, switch between its A and B windows, then return here to inspect each visit.</p>
+  <aside id="environment" class="notice">Experimental source runner · native acceptance pending</aside>
+  <section class="controls" aria-label="Recording controls">
+    <div class="buttons"><button id="normal" class="primary">Run 10-second test</button><button id="fast">Try fast switches (250 ms)</button><button id="manual">Start manual test</button><button id="pause">Pause</button></div>
+    <p>These buttons open <strong>two invented test windows only</strong>. They do not capture your other apps or browser. Their text updates while the same window stays active. Save feedback before starting another test or clearing—the next run replaces this one.</p>
+    <button id="permission" hidden>Allow Accessibility on Mac</button>
+    <p id="message" role="status" aria-live="polite"></p>
+  </section>
+  <section class="summary" aria-label="Capture summary"><div><strong id="visits">0</strong> visits</div><div><strong id="readable">0</strong> with text</div><div><strong id="updates">0</strong> content updates</div><div><strong id="rejected">0</strong> stale/invalid results rejected</div></section>
+  <div class="review">
+    <section><h2>Captured visits</h2><p class="hint">Returning to A should create a new visit—not overwrite the first one.</p><div id="visit-list"><p class="empty">Nothing recorded yet. Start a test above.</p></div></section>
+    <section class="inspector"><h2 id="selected-title">Inspect a visit</h2><p id="selected-info" class="hint">Select a visit to see its captured native text.</p><div id="samples" class="buttons"></div><pre id="content">Text is read through the OS accessibility API—not copied from a fixture event. No OCR or screenshots in this first check.</pre></section>
+  </div>
+  <section class="troubleshoot"><h2>If something doesn’t work</h2><p id="help">Wait for the native reader to become ready. The Windows ZIP includes it; the Mac source runner builds it before opening this inspector.</p><p>Send the feedback file plus the step that failed. A screenshot or short recording of these invented windows is helpful; inspect it before sharing. Do not send personal screens, raw system logs or your other apps’ data.</p><div class="buttons"><button id="feedback">Preview feedback file</button><button id="clear">Clear & close test windows</button><button id="quit">Quit & clear everything</button></div></section>
+  <footer><p>This checks native accessibility text and observed focus changes—not full Default capture. Browser tracking, OCR, screenshots, encrypted history and install/startup integration are not included. Missing/late content stays unavailable; this does not promise every arbitrarily short visit is readable.</p><code id="build"></code></footer>
+</main>
+<dialog id="feedback-dialog"><h2>Check before sharing</h2><p>This file contains build/stage codes and aggregate counts/durations, not window titles, text, IDs or images. Nothing is uploaded.</p><textarea id="feedback-preview" readonly aria-label="Feedback file preview"></textarea><div class="buttons"><button id="save-feedback" class="primary">Save feedback JSON</button><button id="close-feedback">Close</button></div></dialog>
+</body></html>

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:spindle:draft:visit:0",
+  "title": "Draft conformance visit projection — not a standalone production record",
+  "type": "object",
+  "properties": {
+    "visitId": {"$ref": "urn:spindle:draft:observation:0#/$defs/id"},
+    "clockDomainId": {"$ref": "urn:spindle:draft:observation:0#/$defs/id"},
+    "sourceId": {"$ref": "urn:spindle:draft:observation:0#/$defs/id"},
+    "startMs": {"$ref": "urn:spindle:draft:observation:0#/$defs/uint"},
+    "endMs": {"anyOf": [{"$ref": "urn:spindle:draft:observation:0#/$defs/uint"}, {"type": "null"}]},
+    "durationMs": {"anyOf": [{"$ref": "urn:spindle:draft:observation:0#/$defs/uint"}, {"type": "null"}]},
+    "samples": {
+      "type": "array", "maxItems": 256,
+      "items": {
+        "type": "object",
+        "properties": {
+          "jobId": {"$ref": "urn:spindle:draft:observation:0#/$defs/id"},
+          "capturedAtMs": {"$ref": "urn:spindle:draft:observation:0#/$defs/uint"},
+          "contentRevision": {"$ref": "urn:spindle:draft:observation:0#/$defs/uint"},
+          "streamGeneration": {"$ref": "urn:spindle:draft:observation:0#/$defs/uint"},
+          "result": {"$ref": "urn:spindle:draft:observation:0#/$defs/fieldResult"}
+        },
+        "required": ["jobId", "capturedAtMs", "contentRevision", "streamGeneration", "result"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["visitId", "clockDomainId", "sourceId", "startMs", "endMs", "durationMs", "samples"],
+  "additionalProperties": false
+}

@@ -1,0 +1,250 @@
+{
+  "schema": "spindle-draft-conformance/v0",
+  "wireDefaults": {"schema": "spindle-observation/draft-0", "recordingId": "recording-1", "producerInstanceId": "producer-1", "clockDomainId": "clock-1", "wallTimeMs": 1700000000000, "fences": {"lifecycle": 0, "consent": 0, "exclusion": 0, "deletion": 0}},
+  "limits": {"maxValueBytes": 64, "maxJobAgeMs": 5000, "maxPendingJobs": 2},
+  "sources": {
+    "A": {"kind": "native", "sourceId": "A", "processInstanceId": "process-1", "windowInstanceId": "window-A", "profileId": null, "documentId": null},
+    "B": {"kind": "native", "sourceId": "B", "processInstanceId": "process-1", "windowInstanceId": "window-B", "profileId": null, "documentId": null},
+    "browser": {"kind": "browser", "sourceId": "browser", "processInstanceId": "browser-1", "windowInstanceId": "browser-window", "profileId": "profile-1", "documentId": "document-1"}
+  },
+  "schemaCases": [
+    {"name": "valid-focus", "event": {"eventId": "focus", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0}, "expectedCode": null},
+    {"name": "valid-result", "event": {"eventId": "result", "sequence": 2, "atMs": 10, "kind": "result", "jobId": "job-1", "result": {"status": "value", "value": "INVENTED"}}, "expectedCode": null},
+    {"name": "unknown-version", "event": {"schema": "spindle-observation/future", "eventId": "focus", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0}, "expectedCode": "UNSUPPORTED_SCHEMA"},
+    {"name": "unknown-property", "event": {"eventId": "focus", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0, "rawUrl": "DO_NOT_ACCEPT"}, "expectedCode": "SCHEMA_INVALID"},
+    {"name": "kind-specific-property", "event": {"eventId": "result", "sequence": 2, "atMs": 10, "kind": "result", "jobId": "job-1", "visitId": "FORGED_VISIT", "result": {"status": "value", "value": "INVENTED"}}, "expectedCode": "SCHEMA_INVALID"},
+    {"name": "negative-time", "event": {"eventId": "focus", "sequence": 1, "atMs": -1, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0}, "expectedCode": "SCHEMA_INVALID"},
+    {"name": "unsafe-integer", "event": {"eventId": "focus", "sequence": 9007199254740992, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0}, "expectedCode": "SCHEMA_INVALID"},
+    {"name": "boolean-time", "event": {"eventId": "focus", "sequence": 1, "atMs": true, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0}, "expectedCode": "SCHEMA_INVALID"},
+    {"name": "denied-with-payload", "event": {"eventId": "result", "sequence": 2, "atMs": 10, "kind": "result", "jobId": "job-1", "result": {"status": "denied", "value": "DO_NOT_RETAIN"}}, "expectedCode": "SCHEMA_INVALID"},
+    {"name": "empty-with-payload", "event": {"eventId": "result", "sequence": 2, "atMs": 10, "kind": "result", "jobId": "job-1", "result": {"status": "empty", "value": ""}}, "expectedCode": "SCHEMA_INVALID"},
+    {"name": "unknown-status", "event": {"eventId": "result", "sequence": 2, "atMs": 10, "kind": "result", "jobId": "job-1", "result": {"status": "OK"}}, "expectedCode": "SCHEMA_INVALID"},
+    {"name": "source-missing-incarnation", "event": {"eventId": "focus", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": {"kind": "native", "sourceId": "A"}, "contentRevision": 0, "streamGeneration": 0}, "expectedCode": "SCHEMA_INVALID"}
+  ],
+  "cases": [
+    {
+      "name": "rapid-return-late-result",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e2", "sequence": 2, "atMs": 100, "kind": "admit", "jobId": "jA1", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e3", "sequence": 3, "atMs": 2000, "kind": "focus", "visitId": "B1", "source": "B", "contentRevision": 0, "streamGeneration": 1},
+        {"eventId": "e4", "sequence": 4, "atMs": 2100, "kind": "admit", "jobId": "jB1", "visitId": "B1", "source": "B", "contentRevision": 0, "streamGeneration": 1},
+        {"eventId": "e5", "sequence": 5, "atMs": 5000, "kind": "focus", "visitId": "A2", "source": "A", "contentRevision": 0, "streamGeneration": 2},
+        {"eventId": "e6", "sequence": 6, "atMs": 5100, "kind": "result", "jobId": "jA1", "result": {"status": "value", "value": "INVENTED_FIRST_A"}},
+        {"eventId": "e7", "sequence": 7, "atMs": 5200, "kind": "result", "jobId": "jB1", "result": {"status": "value", "value": "INVENTED_FIRST_B"}},
+        {"eventId": "e8", "sequence": 8, "atMs": 6000, "kind": "focus", "visitId": "B2", "source": "B", "contentRevision": 0, "streamGeneration": 3},
+        {"eventId": "e9", "sequence": 9, "atMs": 10000, "kind": "fence", "reason": "pause", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 0}}
+      ],
+      "expected": {"recording": false, "visits": [
+        {"visitId": "A1", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 0, "endMs": 2000, "durationMs": 2000, "samples": [{"jobId": "jA1", "capturedAtMs": 100, "contentRevision": 0, "streamGeneration": 0, "result": {"status": "value", "value": "INVENTED_FIRST_A"}}]},
+        {"visitId": "B1", "clockDomainId": "clock-1", "sourceId": "B", "startMs": 2000, "endMs": 5000, "durationMs": 3000, "samples": [{"jobId": "jB1", "capturedAtMs": 2100, "contentRevision": 0, "streamGeneration": 1, "result": {"status": "value", "value": "INVENTED_FIRST_B"}}]},
+        {"visitId": "A2", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 5000, "endMs": 6000, "durationMs": 1000, "samples": []},
+        {"visitId": "B2", "clockDomainId": "clock-1", "sourceId": "B", "startMs": 6000, "endMs": 10000, "durationMs": 4000, "samples": []}
+      ], "rejected": [], "gaps": []}
+    },
+    {
+      "name": "same-window-content-generation",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 1, "streamGeneration": 1},
+        {"eventId": "e2", "sequence": 2, "atMs": 100, "kind": "content", "visitId": "A1", "contentRevision": 2, "streamGeneration": 2},
+        {"eventId": "old", "sequence": 3, "atMs": 120, "kind": "admit", "jobId": "old", "visitId": "A1", "source": "A", "contentRevision": 1, "streamGeneration": 1},
+        {"eventId": "e4", "sequence": 4, "atMs": 130, "kind": "admit", "jobId": "fresh", "visitId": "A1", "source": "A", "contentRevision": 2, "streamGeneration": 2},
+        {"eventId": "e5", "sequence": 5, "atMs": 180, "kind": "result", "jobId": "fresh", "result": {"status": "value", "value": "INVENTED_FRESH"}},
+        {"eventId": "e6", "sequence": 6, "atMs": 200, "kind": "fence", "reason": "pause", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 0}}
+      ],
+      "expected": {"recording": false, "visits": [{"visitId": "A1", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 0, "endMs": 200, "durationMs": 200, "samples": [{"jobId": "fresh", "capturedAtMs": 130, "contentRevision": 2, "streamGeneration": 2, "result": {"status": "value", "value": "INVENTED_FRESH"}}]}], "rejected": [{"eventId": "old", "code": "STALE_IDENTITY"}], "gaps": []}
+    },
+    {
+      "name": "late-gap-after-pause",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e2", "sequence": 2, "atMs": 100, "kind": "admit", "jobId": "early", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e3", "sequence": 3, "atMs": 120, "kind": "result", "jobId": "early", "result": {"status": "value", "value": "INVENTED_EARLY"}},
+        {"eventId": "e4", "sequence": 4, "atMs": 800, "kind": "admit", "jobId": "late", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e5", "sequence": 5, "atMs": 900, "kind": "result", "jobId": "late", "result": {"status": "value", "value": "INVENTED_LATE"}},
+        {"eventId": "e6", "sequence": 6, "atMs": 1000, "kind": "focus", "visitId": "B1", "source": "B", "contentRevision": 0, "streamGeneration": 1},
+        {"eventId": "e7", "sequence": 7, "atMs": 5000, "kind": "fence", "reason": "pause", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 0}},
+        {"eventId": "e8", "sequence": 8, "atMs": 6000, "kind": "gap", "cutoffMs": 750},
+        {"eventId": "old", "sequence": 9, "atMs": 6100, "kind": "result", "jobId": "late", "result": {"status": "value", "value": "DO_NOT_COMMIT"}}
+      ],
+      "expected": {"recording": false, "visits": [{"visitId": "A1", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 0, "endMs": 750, "durationMs": 750, "samples": [{"jobId": "early", "capturedAtMs": 100, "contentRevision": 0, "streamGeneration": 0, "result": {"status": "value", "value": "INVENTED_EARLY"}}]}], "rejected": [{"eventId": "old", "code": "FENCE_MISMATCH"}], "gaps": [{"clockDomainId": "clock-1", "fromMs": 750, "toMs": 6000, "reason": "observation-gap"}]}
+    },
+    {
+      "name": "pause-fences-results",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e2", "sequence": 2, "atMs": 10, "kind": "admit", "jobId": "job", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e3", "sequence": 3, "atMs": 20, "kind": "fence", "reason": "pause", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 0}},
+        {"eventId": "old", "sequence": 4, "atMs": 30, "kind": "result", "jobId": "job", "result": {"status": "value", "value": "DO_NOT_COMMIT"}}
+      ],
+      "expected": {"recording": false, "visits": [{"visitId": "A1", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 0, "endMs": 20, "durationMs": 20, "samples": []}], "rejected": [{"eventId": "old", "code": "FENCE_MISMATCH"}], "gaps": []}
+    },
+    {
+      "name": "revoke-fences-results",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e2", "sequence": 2, "atMs": 10, "kind": "admit", "jobId": "job", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e3", "sequence": 3, "atMs": 20, "kind": "fence", "reason": "revoke", "fences": {"lifecycle": 1, "consent": 1, "exclusion": 0, "deletion": 0}},
+        {"eventId": "old", "sequence": 4, "atMs": 30, "kind": "result", "jobId": "job", "result": {"status": "value", "value": "DO_NOT_COMMIT"}},
+        {"eventId": "forged", "sequence": 5, "atMs": 40, "kind": "result", "jobId": "job", "result": {"status": "value", "value": "DO_NOT_COMMIT"}, "fences": {"lifecycle": 1, "consent": 1, "exclusion": 0, "deletion": 0}}
+      ],
+      "expected": {"recording": false, "visits": [{"visitId": "A1", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 0, "endMs": 20, "durationMs": 20, "samples": []}], "rejected": [{"eventId": "old", "code": "FENCE_MISMATCH"}, {"eventId": "forged", "code": "NOT_RECORDING"}], "gaps": []}
+    },
+    {
+      "name": "exclude-fences-results",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e2", "sequence": 2, "atMs": 10, "kind": "admit", "jobId": "job", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e3", "sequence": 3, "atMs": 20, "kind": "fence", "reason": "exclude", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 1, "deletion": 0}},
+        {"eventId": "old", "sequence": 4, "atMs": 30, "kind": "result", "jobId": "job", "result": {"status": "value", "value": "DO_NOT_COMMIT"}}
+      ],
+      "expected": {"recording": false, "visits": [{"visitId": "A1", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 0, "endMs": 20, "durationMs": 20, "samples": []}], "rejected": [{"eventId": "old", "code": "FENCE_MISMATCH"}], "gaps": []}
+    },
+    {
+      "name": "delete-fences-results",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e2", "sequence": 2, "atMs": 10, "kind": "admit", "jobId": "job", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "committed", "sequence": 3, "atMs": 15, "kind": "result", "jobId": "job", "result": {"status": "value", "value": "DELETE_THIS_CONTEXT"}},
+        {"eventId": "e3", "sequence": 4, "atMs": 20, "kind": "fence", "reason": "delete", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 1}},
+        {"eventId": "old", "sequence": 5, "atMs": 30, "kind": "result", "jobId": "job", "result": {"status": "value", "value": "DO_NOT_COMMIT"}}
+      ],
+      "expected": {"recording": false, "visits": [], "rejected": [{"eventId": "old", "code": "FENCE_MISMATCH"}], "gaps": []}
+    },
+    {
+      "name": "delete-removes-gap-history",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "gap", "sequence": 2, "atMs": 1000, "kind": "gap", "cutoffMs": 500},
+        {"eventId": "delete", "sequence": 3, "atMs": 2000, "kind": "fence", "reason": "delete", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 1}},
+        {"eventId": "post-delete-gap", "sequence": 4, "atMs": 3000, "kind": "gap", "cutoffMs": 100}
+      ],
+      "expected": {"recording": false, "visits": [], "rejected": [{"eventId": "post-delete-gap", "code": "HISTORY_DELETED"}], "gaps": []}
+    },
+    {
+      "name": "wall-clock-rollback",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 100, "wallTimeMs": 1700000100000, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e2", "sequence": 2, "atMs": 1100, "wallTimeMs": 1699999000000, "kind": "focus", "visitId": "B1", "source": "B", "contentRevision": 0, "streamGeneration": 1},
+        {"eventId": "e3", "sequence": 3, "atMs": 2100, "wallTimeMs": 1699999001000, "kind": "fence", "reason": "pause", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 0}}
+      ],
+      "expected": {"recording": false, "visits": [{"visitId": "A1", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 100, "endMs": 1100, "durationMs": 1000, "samples": []}, {"visitId": "B1", "clockDomainId": "clock-1", "sourceId": "B", "startMs": 1100, "endMs": 2100, "durationMs": 1000, "samples": []}], "rejected": [], "gaps": []}
+    },
+    {
+      "name": "producer-restart-no-clock-span",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 100, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e2", "sequence": 2, "atMs": 600, "kind": "admit", "jobId": "old-job", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "reset", "sequence": 0, "atMs": 0, "kind": "producerReset", "producerInstanceId": "producer-2", "clockDomainId": "clock-2"},
+        {"eventId": "e3", "sequence": 1, "atMs": 50, "kind": "focus", "visitId": "B1", "source": "B", "contentRevision": 0, "streamGeneration": 0, "producerInstanceId": "producer-2", "clockDomainId": "clock-2"},
+        {"eventId": "old", "sequence": 3, "atMs": 700, "kind": "result", "jobId": "old-job", "result": {"status": "value", "value": "DO_NOT_COMMIT"}},
+        {"eventId": "e4", "sequence": 2, "atMs": 150, "kind": "fence", "reason": "pause", "producerInstanceId": "producer-2", "clockDomainId": "clock-2", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 0}}
+      ],
+      "expected": {"recording": false, "visits": [{"visitId": "A1", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 100, "endMs": 600, "durationMs": 500, "samples": []}, {"visitId": "B1", "clockDomainId": "clock-2", "sourceId": "B", "startMs": 50, "endMs": 150, "durationMs": 100, "samples": []}], "rejected": [{"eventId": "old", "code": "SOURCE_MISMATCH"}], "gaps": [{"clockDomainId": "clock-1", "atMs": 600, "reason": "producer-restart"}]}
+    },
+    {
+      "name": "producer-restart-preserves-pause",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e2", "sequence": 2, "atMs": 100, "kind": "fence", "reason": "pause", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 0}},
+        {"eventId": "reset", "sequence": 0, "atMs": 0, "kind": "producerReset", "producerInstanceId": "producer-2", "clockDomainId": "clock-2", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 0}},
+        {"eventId": "blocked", "sequence": 1, "atMs": 50, "kind": "focus", "visitId": "B1", "source": "B", "contentRevision": 0, "streamGeneration": 0, "producerInstanceId": "producer-2", "clockDomainId": "clock-2", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 0}}
+      ],
+      "expected": {"recording": false, "visits": [{"visitId": "A1", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 0, "endMs": 100, "durationMs": 100, "samples": []}], "rejected": [{"eventId": "blocked", "code": "NOT_RECORDING"}], "gaps": []}
+    },
+    {
+      "name": "duplicate-conflict-reordered-event",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e1", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e1", "sequence": 1, "atMs": 5, "kind": "focus", "visitId": "FORGED", "source": "B", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e3", "sequence": 3, "atMs": 100, "kind": "focus", "visitId": "B1", "source": "B", "contentRevision": 0, "streamGeneration": 1},
+        {"eventId": "old", "sequence": 2, "atMs": 50, "kind": "focus", "visitId": "A2", "source": "A", "contentRevision": 0, "streamGeneration": 2},
+        {"eventId": "e4", "sequence": 4, "atMs": 200, "kind": "fence", "reason": "pause", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 0}}
+      ],
+      "expected": {"recording": false, "visits": [{"visitId": "A1", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 0, "endMs": 100, "durationMs": 100, "samples": []}, {"visitId": "B1", "clockDomainId": "clock-1", "sourceId": "B", "startMs": 100, "endMs": 200, "durationMs": 100, "samples": []}], "rejected": [{"eventId": "e1", "code": "EVENT_ID_CONFLICT"}, {"eventId": "old", "code": "OUT_OF_ORDER"}], "gaps": []}
+    },
+    {
+      "name": "browser-not-authorized-by-shape",
+      "events": [
+        {"eventId": "browser", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "browser-visit", "source": "browser", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "native", "sequence": 2, "atMs": 10, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "pause", "sequence": 3, "atMs": 20, "kind": "fence", "reason": "pause", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 0}}
+      ],
+      "expected": {"recording": false, "visits": [{"visitId": "A1", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 10, "endMs": 20, "durationMs": 10, "samples": []}], "rejected": [{"eventId": "browser", "code": "BROWSER_NOT_IN_SCOPE"}], "gaps": []}
+    },
+    {
+      "name": "completion-is-not-an-observation",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e2", "sequence": 2, "atMs": 100, "kind": "admit", "jobId": "job", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e3", "sequence": 3, "atMs": 200, "kind": "content", "visitId": "A1", "contentRevision": 1, "streamGeneration": 0},
+        {"eventId": "e4", "sequence": 4, "atMs": 700, "kind": "result", "jobId": "job", "result": {"status": "value", "value": "INVENTED_OLD_REVISION"}},
+        {"eventId": "reset", "sequence": 0, "atMs": 0, "kind": "producerReset", "producerInstanceId": "producer-2", "clockDomainId": "clock-2"},
+        {"eventId": "pause", "sequence": 1, "atMs": 50, "kind": "fence", "reason": "pause", "producerInstanceId": "producer-2", "clockDomainId": "clock-2", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 0}}
+      ],
+      "expected": {"recording": false, "visits": [{"visitId": "A1", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 0, "endMs": 200, "durationMs": 200, "samples": [{"jobId": "job", "capturedAtMs": 100, "contentRevision": 0, "streamGeneration": 0, "result": {"status": "value", "value": "INVENTED_OLD_REVISION"}}]}], "rejected": [], "gaps": [{"clockDomainId": "clock-1", "atMs": 200, "reason": "producer-restart"}]}
+    },
+    {
+      "name": "committed-sample-at-closing-boundary",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e2", "sequence": 2, "atMs": 100, "kind": "admit", "jobId": "job", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e3", "sequence": 3, "atMs": 100, "kind": "result", "jobId": "job", "result": {"status": "value", "value": "DO_NOT_RETAIN_AT_END"}},
+        {"eventId": "e4", "sequence": 4, "atMs": 100, "kind": "focus", "visitId": "B1", "source": "B", "contentRevision": 0, "streamGeneration": 1},
+        {"eventId": "pause", "sequence": 5, "atMs": 200, "kind": "fence", "reason": "pause", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 0}}
+      ],
+      "expected": {"recording": false, "visits": [{"visitId": "A1", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 0, "endMs": 100, "durationMs": 100, "samples": []}, {"visitId": "B1", "clockDomainId": "clock-1", "sourceId": "B", "startMs": 100, "endMs": 200, "durationMs": 100, "samples": []}], "rejected": [], "gaps": []}
+    },
+    {
+      "name": "bounded-jobs-age-and-utf8-value",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e2", "sequence": 2, "atMs": 1, "kind": "admit", "jobId": "j1", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e3", "sequence": 3, "atMs": 2, "kind": "admit", "jobId": "j2", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "full", "sequence": 4, "atMs": 3, "kind": "admit", "jobId": "j3", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "expired1", "sequence": 5, "atMs": 6000, "kind": "result", "jobId": "j1", "result": {"status": "value", "value": "DO_NOT_COMMIT"}},
+        {"eventId": "expired2", "sequence": 6, "atMs": 6001, "kind": "result", "jobId": "j2", "result": {"status": "value", "value": "DO_NOT_COMMIT"}},
+        {"eventId": "e7", "sequence": 7, "atMs": 6002, "kind": "admit", "jobId": "j4", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "oversized", "sequence": 8, "atMs": 6003, "kind": "result", "jobId": "j4", "result": {"status": "value", "value": "ééééééééééééééééééééééééééééééééé"}},
+        {"eventId": "pause", "sequence": 9, "atMs": 6100, "kind": "fence", "reason": "pause", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 0}}
+      ],
+      "expected": {"recording": false, "visits": [{"visitId": "A1", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 0, "endMs": 6100, "durationMs": 6100, "samples": []}], "rejected": [{"eventId": "full", "code": "QUEUE_FULL"}, {"eventId": "expired1", "code": "JOB_EXPIRED"}, {"eventId": "expired2", "code": "JOB_EXPIRED"}, {"eventId": "oversized", "code": "VALUE_TOO_LARGE"}], "gaps": []}
+    },
+    {
+      "name": "field-result-states-stay-distinct",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "a1", "sequence": 2, "atMs": 10, "kind": "admit", "jobId": "j1", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "r1", "sequence": 3, "atMs": 11, "kind": "result", "jobId": "j1", "result": {"status": "empty"}},
+        {"eventId": "a2", "sequence": 4, "atMs": 20, "kind": "admit", "jobId": "j2", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "r2", "sequence": 5, "atMs": 21, "kind": "result", "jobId": "j2", "result": {"status": "denied"}},
+        {"eventId": "a3", "sequence": 6, "atMs": 30, "kind": "admit", "jobId": "j3", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "r3", "sequence": 7, "atMs": 31, "kind": "result", "jobId": "j3", "result": {"status": "unsupported"}},
+        {"eventId": "a4", "sequence": 8, "atMs": 40, "kind": "admit", "jobId": "j4", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "r4", "sequence": 9, "atMs": 41, "kind": "result", "jobId": "j4", "result": {"status": "unavailable"}},
+        {"eventId": "a5", "sequence": 10, "atMs": 50, "kind": "admit", "jobId": "j5", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "r5", "sequence": 11, "atMs": 51, "kind": "result", "jobId": "j5", "result": {"status": "stale"}},
+        {"eventId": "pause", "sequence": 12, "atMs": 60, "kind": "fence", "reason": "pause", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 0}}
+      ],
+      "expected": {"recording": false, "visits": [{"visitId": "A1", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 0, "endMs": 60, "durationMs": 60, "samples": [
+        {"jobId": "j1", "capturedAtMs": 10, "contentRevision": 0, "streamGeneration": 0, "result": {"status": "empty"}},
+        {"jobId": "j2", "capturedAtMs": 20, "contentRevision": 0, "streamGeneration": 0, "result": {"status": "denied"}},
+        {"jobId": "j3", "capturedAtMs": 30, "contentRevision": 0, "streamGeneration": 0, "result": {"status": "unsupported"}},
+        {"jobId": "j4", "capturedAtMs": 40, "contentRevision": 0, "streamGeneration": 0, "result": {"status": "unavailable"}},
+        {"jobId": "j5", "capturedAtMs": 50, "contentRevision": 0, "streamGeneration": 0, "result": {"status": "stale"}}
+      ]}], "rejected": [], "gaps": []}
+    },
+    {
+      "name": "capture-at-half-open-boundary",
+      "events": [
+        {"eventId": "e1", "sequence": 1, "atMs": 0, "kind": "focus", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e2", "sequence": 2, "atMs": 100, "kind": "admit", "jobId": "boundary", "visitId": "A1", "source": "A", "contentRevision": 0, "streamGeneration": 0},
+        {"eventId": "e3", "sequence": 3, "atMs": 100, "kind": "focus", "visitId": "B1", "source": "B", "contentRevision": 0, "streamGeneration": 1},
+        {"eventId": "boundary", "sequence": 4, "atMs": 101, "kind": "result", "jobId": "boundary", "result": {"status": "value", "value": "DO_NOT_COMMIT"}},
+        {"eventId": "pause", "sequence": 5, "atMs": 200, "kind": "fence", "reason": "pause", "fences": {"lifecycle": 1, "consent": 0, "exclusion": 0, "deletion": 0}}
+      ],
+      "expected": {"recording": false, "visits": [{"visitId": "A1", "clockDomainId": "clock-1", "sourceId": "A", "startMs": 0, "endMs": 100, "durationMs": 100, "samples": []}, {"visitId": "B1", "clockDomainId": "clock-1", "sourceId": "B", "startMs": 100, "endMs": 200, "durationMs": 100, "samples": []}], "rejected": [{"eventId": "boundary", "code": "CAPTURE_OUTSIDE_VISIT"}], "gaps": []}
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {runInNewContext} from 'node:vm';
+test('navigation during an in-flight guard check cannot apply the old resource allowance',async()=>{
+ const source=await readFile(process.env.SPINDLE_BLOCKING_GUARD ?? new URL('../../browser-extension/preview/blocking/guard.js',import.meta.url),'utf8');
+ let interval=()=>{};let reloads=0;
+ const requests:{resource:string;resolve:(result:unknown)=>void}[]=[];
+ const location={href:'http://example.test/a',reload:()=>{reloads++;}};
+ const document={documentElement:{style:{visibility:'visible'}},querySelectorAll:()=>[]};
+ runInNewContext(source,{location,Date,document,setInterval:(fn:()=>void)=>{interval=fn;return 1;},clearInterval:()=>{},setTimeout:()=>1,clearTimeout:()=>{},chrome:{runtime:{sendMessage:({resource}:{resource:string})=>new Promise(resolve=>requests.push({resource,resolve})),onMessage:{addListener:()=>{},removeListener:()=>{}}}}});
+ assert.equal(requests.length,1);
+ location.href='http://example.test/b';interval();
+ requests[0]!.resolve({active:true,gated:false,expires:Date.now()+60000});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(requests.length,2,'changed resource must be checked without waiting for another URL change or expiry');
+ assert.equal(requests[1]!.resource,location.href);
+ requests[1]!.resolve({active:true,gated:true});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(reloads,1);assert.equal(document.documentElement.style.visibility,'hidden');
+});
+test('idle guard never wakes worker repeatedly and explicit stop terminates observation',async()=>{
+ const source=await readFile(process.env.SPINDLE_BLOCKING_GUARD ?? new URL('../../browser-extension/preview/blocking/guard.js',import.meta.url),'utf8');
+ let interval=()=>{};let listener=(m:{type:string})=>{};let requests=0;let cleared=false;
+ const location={href:'http://example.test/a',reload:()=>{}};
+ runInNewContext(source,{location,Date,document:{},setInterval:(fn:()=>void)=>{interval=fn;return 1;},clearInterval:()=>{cleared=true;},setTimeout:()=>1,clearTimeout:()=>{},chrome:{runtime:{sendMessage:async()=>{requests++;return {active:true,gated:false,expires:Date.now()+60000};},onMessage:{addListener:(fn:typeof listener)=>{listener=fn;},removeListener:()=>{}}}}});
+ await new Promise(resolve=>setImmediate(resolve));
+ for(let i=0;i<100;i++)interval();assert.equal(requests,1);
+ listener({type:'blocking-stop'});assert.equal(cleared,true);
+ location.href='http://example.test/b';interval();assert.equal(requests,1);
+});

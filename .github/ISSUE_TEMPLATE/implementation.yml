@@ -1,0 +1,31 @@
+name: Implementation slice
+description: Define one reviewable outcome, completion criteria and boundaries
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Problem and goal
+      description: "Title: [Area] Observable outcome. Who is affected and what should become possible? For a bug, include reproduction steps and actual versus expected results."
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Observable conditions for completion, including important failure/privacy/recovery behavior. These own the requirements; test-run checkboxes/results belong in the PR. Follow CONTRIBUTING.md.
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Boundaries and dependencies
+      description: Included/excluded work, direct blockers and whether they block implementation, integration or acceptance. Name unresolved decisions, required environments and authority; do not infer permission to spend, provision or merge.
+    validations:
+      required: true
+  - type: textarea
+    id: hints
+    attributes:
+      label: Implementation hints and risks (when useful)
+      description: Verified entry points/design links, critical invariants and risky boundaries. Distinguish mandatory constraints from suggestions and proposed modules from existing code. Name the cheapest effective verification and visual-review scenario when relevant; no copied policy or coding diary.
+    validations:
+      required: false

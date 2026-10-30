@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "sourceRevision": "bdbbcd6b4c52774c8a17746cb897a90042c3e921",
+  "artifacts": [
+    {
+      "name": "Spindle-Mac-test-bdbbcd6b4c.zip",
+      "r2Key": "releases/bdbbcd6b4c52774c8a17746cb897a90042c3e921/eda7f7dd3354d3098790db0ef73d445921a3e0dd0ca76378eb322c9391d0b937/Spindle-Mac-test-bdbbcd6b4c.zip",
+      "sha256": "eda7f7dd3354d3098790db0ef73d445921a3e0dd0ca76378eb322c9391d0b937",
+      "sizeBytes": 38190649,
+      "r2Etag": "20a3686e930c31656d69af049ff92c0a",
+      "contentType": "application/zip",
+      "platform": "macos-arm64",
+      "kind": "desktop",
+      "version": "bdbbcd6b4c developer preview",
+      "signing": "ad-hoc signed, NOT notarized; installed flows UNVERIFIED (Mac locked)",
+      "label": "Mac developer preview · Apple Silicon/macOS15+ · installed flows UNVERIFIED"
+    },
+    {
+      "name": "Spindle-Chrome-bdbbcd6b4c.zip",
+      "r2Key": "releases/bdbbcd6b4c52774c8a17746cb897a90042c3e921/353f29a2eced4920315e9fc59d18b995bcdb4a88afe336a7fd874a3ad2daebc2/Spindle-Chrome-bdbbcd6b4c.zip",
+      "sha256": "353f29a2eced4920315e9fc59d18b995bcdb4a88afe336a7fd874a3ad2daebc2",
+      "sizeBytes": 130191,
+      "r2Etag": "a1c2731a35b03b562c71140a31a80b38",
+      "contentType": "application/zip",
+      "platform": "chrome",
+      "kind": "extension",
+      "version": "bdbbcd6b4c developer preview",
+      "signing": "Not Web Store; installed enforcement UNVERIFIED",
+      "label": "Chrome companion developer preview · requires matching Mac app · Load Unpacked/register ID/pair UI · pairing grants no recording/model/timer/earned consent"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "r2Key": "releases/bdbbcd6b4c52774c8a17746cb897a90042c3e921/3ad4eb2f3f7cc5401260dca89a0ecbbf67c5bc7d036627d138e143f3f1866013/SHA256SUMS.txt",
+      "sha256": "3ad4eb2f3f7cc5401260dca89a0ecbbf67c5bc7d036627d138e143f3f1866013",
+      "sizeBytes": 194,
+      "r2Etag": "466785ad07df892bd876f9ce4dcd3b89",
+      "contentType": "text/plain; charset=utf-8",
+      "platform": "all",
+      "kind": "checksums",
+      "version": "bdbbcd6b4c",
+      "signing": "Integrity hashes only; not notarization or installed-flow proof",
+      "label": "SHA-256 checksums for both developer-preview ZIPs"
+    }
+  ]
+}

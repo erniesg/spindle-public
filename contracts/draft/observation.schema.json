@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:spindle:draft:observation:0",
+  "title": "Draft observation envelope — not a production wire contract",
+  "allOf": [
+    {"$ref": "#/$defs/envelope"},
+    {"oneOf": [
+      {"properties": {"kind": {"const": "focus"}, "visitId": {"$ref": "#/$defs/id"}, "source": {"$ref": "#/$defs/source"}, "contentRevision": {"$ref": "#/$defs/uint"}, "streamGeneration": {"$ref": "#/$defs/uint"}}, "required": ["kind", "visitId", "source", "contentRevision", "streamGeneration"]},
+      {"properties": {"kind": {"const": "content"}, "visitId": {"$ref": "#/$defs/id"}, "contentRevision": {"$ref": "#/$defs/uint"}, "streamGeneration": {"$ref": "#/$defs/uint"}}, "required": ["kind", "visitId", "contentRevision", "streamGeneration"]},
+      {"properties": {"kind": {"const": "admit"}, "jobId": {"$ref": "#/$defs/id"}, "visitId": {"$ref": "#/$defs/id"}, "source": {"$ref": "#/$defs/source"}, "contentRevision": {"$ref": "#/$defs/uint"}, "streamGeneration": {"$ref": "#/$defs/uint"}}, "required": ["kind", "jobId", "visitId", "source", "contentRevision", "streamGeneration"]},
+      {"properties": {"kind": {"const": "result"}, "jobId": {"$ref": "#/$defs/id"}, "result": {"$ref": "#/$defs/fieldResult"}}, "required": ["kind", "jobId", "result"]},
+      {"properties": {"kind": {"const": "fence"}, "reason": {"enum": ["pause", "revoke", "exclude", "delete"]}}, "required": ["kind", "reason"]},
+      {"properties": {"kind": {"const": "gap"}, "cutoffMs": {"$ref": "#/$defs/uint"}}, "required": ["kind", "cutoffMs"]},
+      {"properties": {"kind": {"const": "producerReset"}}, "required": ["kind"]}
+    ]}
+  ],
+  "unevaluatedProperties": false,
+  "$defs": {
+    "uint": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$"},
+    "fences": {
+      "type": "object",
+      "properties": {"lifecycle": {"$ref": "#/$defs/uint"}, "consent": {"$ref": "#/$defs/uint"}, "exclusion": {"$ref": "#/$defs/uint"}, "deletion": {"$ref": "#/$defs/uint"}},
+      "required": ["lifecycle", "consent", "exclusion", "deletion"],
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "kind": {"enum": ["native", "browser"]},
+        "sourceId": {"$ref": "#/$defs/id"},
+        "processInstanceId": {"$ref": "#/$defs/id"},
+        "windowInstanceId": {"$ref": "#/$defs/id"},
+        "profileId": {"anyOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]},
+        "documentId": {"anyOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]}
+      },
+      "required": ["kind", "sourceId", "processInstanceId", "windowInstanceId", "profileId", "documentId"],
+      "additionalProperties": false
+    },
+    "fieldResult": {
+      "oneOf": [
+        {"type": "object", "properties": {"status": {"const": "value"}, "value": {"type": "string", "minLength": 1, "maxLength": 128}}, "required": ["status", "value"], "additionalProperties": false},
+        {"type": "object", "properties": {"status": {"enum": ["empty", "unsupported", "denied", "stale", "unavailable"]}}, "required": ["status"], "additionalProperties": false}
+      ]
+    },
+    "envelope": {
+      "type": "object",
+      "properties": {
+        "schema": {"const": "spindle-observation/draft-0"},
+        "recordingId": {"$ref": "#/$defs/id"},
+        "producerInstanceId": {"$ref": "#/$defs/id"},
+        "clockDomainId": {"$ref": "#/$defs/id"},
+        "eventId": {"$ref": "#/$defs/id"},
+        "sequence": {"$ref": "#/$defs/uint"},
+        "atMs": {"$ref": "#/$defs/uint"},
+        "wallTimeMs": {"$ref": "#/$defs/uint"},
+        "fences": {"$ref": "#/$defs/fences"}
+      },
+      "required": ["schema", "recordingId", "producerInstanceId", "clockDomainId", "eventId", "sequence", "atMs", "wallTimeMs", "fences"]
+    }
+  }
+}

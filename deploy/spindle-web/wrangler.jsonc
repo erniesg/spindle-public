@@ -1,0 +1,20 @@
+// Fresh Spindle public origin. Reuses the EXISTING Worker name and custom domain on purpose
+// (inventoried 2026-10-29: assets-only legacy download page, no bindings). Deploy only through
+// `wrangler versions upload` + `wrangler versions deploy` per deploy/README.md so rollback to the
+// recorded legacy version stays one command. Never `wrangler deploy` from another config with this name.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "spindle-downloads",
+  "account_id": "5b25778cf6d9821373d913f5236e1606",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-06-16",
+  "workers_dev": false,
+  "preview_urls": false,
+  // Identical to the live binding; listed so a deliberate `wrangler deploy` cannot silently unbind it.
+  "routes": [{"pattern": "spindle.berlayar.ai", "custom_domain": true}],
+  // Request URLs/headers are not logged by default; use `wrangler tail` during verification only.
+  "observability": {"enabled": false},
+  "r2_buckets": [{"binding": "DOWNLOADS", "bucket_name": "spindle-downloads"}],
+  // Filled with the id printed by step E1 in deploy/README.md (VPC service -> tunnel rucksack-stg -> 127.0.0.1:43180).
+  "vpc_services": [{"binding": "ORIGIN", "service_id": "01a1889a-246f-7f53-a413-541c87c358ed", "remote": true}]
+}

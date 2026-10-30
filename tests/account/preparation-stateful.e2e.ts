@@ -1,0 +1,42 @@
+import assert from 'node:assert/strict';
+import {mkdir,writeFile} from 'node:fs/promises';
+import {join,resolve} from 'node:path';
+import {chromium,type Browser,type BrowserContext} from 'playwright-core';
+import {statefulFixture} from './stateful-fixture.js';
+const executable=process.env.SPINDLE_REVIEW_CHROMIUM;if(!executable)throw Error('Existing SPINDLE_REVIEW_CHROMIUM required');
+const output=resolve(process.env.SPINDLE_GOOGLE_REVIEW_OUTPUT!);await mkdir(output,{recursive:false});
+const f=await statefulFixture();let browser:Browser|undefined,context:BrowserContext|undefined;
+try{
+ await f.connect();await f.connect();const failed=await f.client.connectGoogle();await f.consent(failed.authorizationUrl,true);
+ browser=await chromium.launch({executablePath:executable,headless:true,chromiumSandbox:true});
+ context=await browser.newContext({viewport:{width:1100,height:1000},recordVideo:{dir:join(output,'video')}});
+ await context.route('**/*',route=>{const url=new URL(route.request().url());if(url.origin===f.server.origin)return route.continue();
+  if(url.origin==='https://accounts.google.com')return route.fulfill({contentType:'text/html',body:'<h1>Invented Google consent fixture</h1><p>No real Google request or automatic permission.</p>'});
+  if(url.href==='https://apis.google.com/js/api.js')return route.fulfill({contentType:'text/javascript',body:`globalThis.gapi={load:(_n,o)=>o.callback()};globalThis.google={picker:{ViewId:{FOLDERS:'folders'},Action:{PICKED:'picked'},DocsView:class{setIncludeFolders(){return this}setSelectFolderEnabled(){return this}},PickerBuilder:class{setAppId(){return this}setDeveloperKey(){return this}setOAuthToken(){return this}setOrigin(){return this}addView(){return this}setCallback(cb){this.cb=cb;return this}build(){const cb=this.cb;let d;return {setVisible(v){if(!v)return;d=document.createElement('dialog');d.innerHTML='<p>Invented Picker · exact saved folder root only</p><button>Select exact saved folder</button>';d.querySelector('button').onclick=()=>cb({action:'picked',docs:[{id:'root'}]});document.body.append(d);d.showModal()},dispose(){d?.remove()}}}}}};`});
+  return route.abort();
+ });
+ const page=await context.newPage();await page.request.post(f.server.origin+'/signin',{headers:{Origin:f.server.origin},data:{name:'invented-owner',password:'invented-password-123'}});
+ await page.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{const p=document.createElement('p');p.textContent='INVENTED Google / Picker / provider · actual authenticated UI and stores · NOT live acceptance';document.body.prepend(p);}));
+ const idle=()=>page.locator('#signed[aria-busy="false"]').waitFor();
+ await page.goto(f.server.origin+'/connections');await idle();
+ assert.equal(await page.locator('#active-connection').count(),1,'normal page must have one active task-bound connection');
+ assert.equal(await page.locator('#advanced-connections').getAttribute('open'),null);
+ assert.ok(!(await page.locator('#active-connection').innerText()).includes('Not connected'));
+ const request='Prepare an invented editable application and preserve this draft.';await page.locator('#preparation-request').fill(request);await page.locator('#preparation-processing').check();await page.reload();await idle();assert.equal(await page.locator('#preparation-request').inputValue(),request);assert.equal(await page.locator('#preparation-processing').isChecked(),true);
+ await page.locator('#run-preparation').click();await page.getByText('INVENTED_PREPARATION_BLOCKER',{exact:false}).first().waitFor();await idle();
+ const taskId=await page.locator('#preparation-task').getAttribute('data-task-id');assert.ok(taskId);const calls=f.dispatches();
+ await page.locator('#preparation-save').check();assert.equal(await page.locator('#run-preparation').isDisabled(),true);assert.equal(await page.getByRole('button',{name:/Picker/}).count(),0);
+ await page.waitForTimeout(1600);await page.screenshot({path:join(output,'one-task-readonly.png'),fullPage:true});
+ let popupPromise=page.waitForEvent('popup');await page.locator('#enable-saving').click();let popup=await popupPromise;await popup.waitForURL('https://accounts.google.com/**');const deniedUrl=popup.url();await f.consent(deniedUrl,true);await popup.close();await page.locator('#refresh-access').click();await idle();assert.match(await page.locator('#saving-status').innerText(),/permission|read.only/i);assert.equal(await page.locator('#preparation-request').inputValue(),request);assert.equal(await page.locator('#preparation-save').isChecked(),true);
+ // Simulate popup blocking: fallback must be in the active panel, visible and focused immediately after flow creation.
+ await page.evaluate(()=>{window.open=()=>null;});await page.locator('#enable-saving').click();await page.locator('#continue-google').waitFor({state:'visible'});assert.equal(await page.locator('#continue-google').evaluate(n=>document.activeElement===n),true);
+ const flow=await page.locator('#continue-google').getAttribute('href');assert.ok(flow);const same=await page.evaluate(async id=>{const path='/connections-client.js',module=await import(path),c=new module.AccountClient(location.origin,fetch,true);await c.restore();return c.authorizeGoogleOutputs(id);},(await f.client.preparationTask(taskId!)).connectionId!);assert.equal(same.authorizationUrl,flow,'pending permission retry must reuse flow');
+ await page.waitForTimeout(1800);await page.screenshot({path:join(output,'visible-consent-fallback.png'),fullPage:true});
+ f.setGrant();await f.consent(flow!);await page.reload();await idle();assert.equal(await page.locator('#preparation-request').inputValue(),request);assert.equal(await page.locator('#preparation-save').isChecked(),true);assert.equal(await page.locator('#preparation-task').getAttribute('data-task-id'),taskId);
+ await page.locator('#refresh-access').click();await idle();assert.match(await page.locator('#enable-saving').innerText(),/Choose saved folder/);
+ await page.waitForTimeout(1400);await page.locator('#enable-saving').click();await page.getByRole('button',{name:'Select exact saved folder',exact:true}).waitFor();f.setParent();await page.getByRole('button',{name:'Select exact saved folder',exact:true}).click();await page.getByText('Ready to save',{exact:true}).first().waitFor();await idle();
+ assert.equal(await page.locator('#enable-saving').isDisabled(),true);assert.equal(f.dispatches(),calls,'permission and diagnostics must not start or resume a model');assert.equal(await page.locator('#preparation-root').isDisabled(),true);
+ await page.waitForTimeout(2000);await page.screenshot({path:join(output,'exact-parent-ready.png'),fullPage:true});
+ await writeFile(join(output,'result.json'),JSON.stringify({status:'PASS',inventedOnly:true,oneTaskBoundConnection:true,draftModeTaskRestored:true,popupConsentNavigation:true,focusedVisibleBlockedPopupFallback:true,pendingFlowIdempotent:true,denialRetainsReadonly:true,missingGrantPickerHidden:true,exactPickerParentVerified:true,noAutomaticRunResume:true,modelFixtureDispatches:calls},null,2)+'\n');
+ console.log('PASS stateful normal UI and saving flow; sandboxed Chromium; invented data only');
+}finally{await context?.close();await browser?.close();await f.close();}

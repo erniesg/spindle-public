@@ -1,0 +1,32 @@
+{
+  "schema": "spindle-capture-check-package/v1",
+  "files": [
+    "contracts/capture-check.package.json",
+    "contracts/node-runtime.lock.json",
+    "core/capture-check/app.ts",
+    "core/capture-check/native.ts",
+    "core/capture-check/session.ts",
+    "core/capture-check/types.ts",
+    "build/core/capture-check/app.js",
+    "build/core/capture-check/native.js",
+    "build/core/capture-check/session.js",
+    "build/core/capture-check/types.js",
+    "build/core/capture-check/ui.js",
+    "build/core/capture-check/index.html",
+    "build/core/capture-check/style.css",
+    "package.json",
+    "package-lock.json",
+    "tsconfig.json",
+    "tools/build-assets.ts",
+    "core/capture-check/index.html",
+    "core/capture-check/ui.ts",
+    "core/capture-check/style.css",
+    "platforms/macos/CaptureCheck.swift",
+    "platforms/macos/start-capture-check.command",
+    "platforms/windows/CaptureCheck.cs",
+    "platforms/windows/ObservationContinuity.cs",
+    "platforms/windows/CaptureCheck.csproj",
+    "platforms/windows/start-capture-check.cmd",
+    "docs/TRY_CAPTURE.md"
+  ]
+}

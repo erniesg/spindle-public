@@ -1,0 +1,3 @@
+# Optional local-only CPython 3.12 Linux aarch64 decoder. Requires reviewed Pillow>=11.1.0.
+# Install binary-only, --no-deps --require-hashes into an owned uv venv; see HEIF-NOTICES.md.
+pillow-heif==1.8.1 --hash=sha256:a36caeeb3e3ce12a3492aa8ab52d08393601303fa9b8b1bb807bef32b1edb505

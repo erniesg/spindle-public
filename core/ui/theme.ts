@@ -1,0 +1,66 @@
+// The one Spindle theme source. Browser-safe: no imports, globals or effects.
+// Values are the owner-approved complete-site export (snapshot ba2f72a002, Sites v85):
+// design-tokens.css foundations, palette.js "goldgraphite" (Graphite / lemon gold, the
+// 2026-10-27 selection) and appearance-init.js app typography. See docs/SHARED_UI.md.
+export const tokens = Object.freeze({
+  '--sp-ink': '#23272f',
+  '--sp-muted': '#5d6471',
+  '--sp-paper': '#ffffff',
+  '--sp-surface': '#f7f7f7',
+  '--sp-line': '#e1e3e1',
+  '--sp-action': '#303642',
+  '--sp-action-hover': '#282d37',
+  '--sp-action-pressed': '#22262e',
+  '--sp-action-tint': '#e2e3e5',
+  '--sp-action-soft': '#f1f1f2',
+  '--sp-on-action': '#ffffff',
+  '--sp-focus': '#303642',
+  '--sp-border-hover': '#72767e',
+  '--sp-accent': '#f3ce36',
+  '--sp-accent-ink': '#7c6200',
+  // Status meaning is independent of the brand palette (palette.js statusColours).
+  '--sp-status-neutral-ink': '#5f6663',
+  '--sp-status-neutral-surface': '#f1f3f2',
+  '--sp-status-neutral-line': '#d8dfdb',
+  '--sp-status-working-ink': '#315f93',
+  '--sp-status-working-surface': '#eef4fb',
+  '--sp-status-working-line': '#c5d7ec',
+  '--sp-status-success-ink': '#24613f',
+  '--sp-status-success-surface': '#edf6ef',
+  '--sp-status-success-line': '#bbd8c5',
+  '--sp-status-error-ink': '#a73535',
+  '--sp-status-error-surface': '#fff0ee',
+  '--sp-status-error-line': '#efc6bf',
+  // Font binaries are not bundled; each stack falls back to installed system faces.
+  '--sp-font': "'DM Sans', Arial, sans-serif",
+  '--sp-display-font': "'Instrument Serif', Georgia, serif",
+  '--sp-mono-font': 'ui-monospace, SFMono-Regular, Consolas, monospace',
+  '--sp-caption-size': '13px',
+  '--sp-control-size': '14px',
+  '--sp-body-size': '16px',
+  '--sp-heading-size': '20px',
+  '--sp-section-title': '28px',
+  '--sp-page-title': '43px',
+  '--sp-space-1': '4px',
+  '--sp-space-2': '8px',
+  '--sp-space-3': '12px',
+  '--sp-space-4': '16px',
+  '--sp-space-5': '20px',
+  '--sp-space-6': '24px',
+  '--sp-space-8': '32px',
+  '--sp-space-10': '40px',
+  '--sp-radius-sm': '7px',
+  '--sp-radius-md': '12px',
+  '--sp-radius-lg': '16px',
+  '--sp-radius-pill': '999px',
+  '--sp-control-height': '38px',
+  '--sp-line-width': '1px',
+  '--sp-focus-width': '2px',
+  '--sp-disabled-opacity': '.5',
+  '--sp-duration-fast': '140ms',
+  '--sp-ease': 'cubic-bezier(.2,.65,.3,1)',
+});
+
+export type Token = keyof typeof tokens;
+
+export const themeCss = `:root{color-scheme:light;${Object.entries(tokens).map(([name, value]) => `${name}:${value}`).join(';')}}`;

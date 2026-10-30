@@ -1,0 +1,115 @@
+/* Spindle web app additions on top of the approved design (spindle.css). Same tokens, same tone. */
+.sp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sp-quiet{font-size:var(--sp-caption-size);color:var(--sp-muted);margin:var(--sp-space-3) 0}
+.topbar-left:empty{display:none}
+.sp-signout{background:none;border:0;color:var(--sp-muted);cursor:pointer;font:inherit;font-size:var(--sp-caption-size)}
+.sp-signout:hover{color:var(--sp-ink)}
+.sidebar a.workspace{text-decoration:none;color:var(--sp-ink)}
+
+/* Sign in: one button. */
+.ac-auth-body>.sp-auth-continue{display:flex;width:100%;justify-content:center;margin-top:30px;box-sizing:border-box}
+.ac-auth-body>.sp-auth-continue[aria-disabled=true]{opacity:.45;pointer-events:none}
+
+/* Tool steps lighting up in order. */
+.sp-tool-chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0;padding:0}
+.sp-tool-chip{display:inline-flex;align-items:center;gap:6px;border-radius:var(--sp-radius-pill);padding:4px 10px 4px 8px;font:500 12px/1.4 var(--sp-font);color:var(--sp-muted);background:var(--sp-surface);border:var(--sp-line-width) solid var(--sp-line);transition:background .35s ease,color .35s ease,border-color .35s ease}
+.sp-tool-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.35;transition:opacity .35s ease,transform .35s ease}
+.sp-tool-chip.is-running{color:var(--status-working-ink);background:var(--status-working-surface);border-color:var(--status-working-line)}
+.sp-tool-chip.is-running .sp-tool-dot{opacity:1;animation:sp-chip-pulse 1.4s ease-in-out infinite}
+.sp-tool-chip.is-done{color:var(--status-success-ink);background:var(--status-success-surface);border-color:var(--status-success-line)}
+.sp-tool-chip.is-done .sp-tool-dot{opacity:1}
+.sp-tool-chip.is-failed{color:var(--status-attention-ink);background:var(--status-attention-surface);border-color:var(--status-attention-line)}
+.sp-tool-chip.is-failed .sp-tool-dot{opacity:1}
+@keyframes sp-chip-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.7);opacity:.45}}
+@media(prefers-reduced-motion:reduce){.sp-tool-chip,.sp-tool-dot{transition:none;animation:none!important}}
+.wk-step-body .sp-tool-chips{margin:8px 0 4px}
+
+/* Today: one calm empty state. */
+.today-content{display:grid;gap:var(--sp-space-6)}
+.sp-empty-state{border:var(--sp-line-width) solid var(--sp-line);border-radius:var(--sp-radius-lg);padding:44px 40px;text-align:left;display:grid;gap:10px;justify-items:start}
+.sp-empty-state h2{font:400 var(--sp-section-title)/1.15 var(--sp-display-font);margin:6px 0 0;letter-spacing:-.2px}
+.sp-empty-state p{margin:0;color:var(--sp-muted);font-size:var(--sp-body-size);line-height:1.6;max-width:52ch}
+.sp-empty-state .button{margin-top:12px}
+.sp-empty-mark{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--sp-surface);color:var(--sp-ink)}
+.sp-watch-dot{width:12px;height:12px;border-radius:50%;background:var(--status-success-ink);box-shadow:0 0 0 0 var(--status-success-line);animation:sp-watch 2.8s ease-out infinite}
+@keyframes sp-watch{0%{box-shadow:0 0 0 0 var(--status-success-line)}70%{box-shadow:0 0 0 14px transparent}100%{box-shadow:0 0 0 0 transparent}}
+@media(prefers-reduced-motion:reduce){.sp-watch-dot{animation:none}}
+.sp-task-card .sp-task-photo img{object-fit:cover}
+
+/* Review: details, files, reply, send. */
+.wk-edit-grid.is-single{grid-template-columns:1fr}
+.wk-value-wrap input[readonly]{background:var(--page,#fff);cursor:default}
+.wk-value-wrap input[readonly]:focus{outline:var(--sp-focus-width) solid var(--sp-focus);outline-offset:2px}
+.sp-cost{font-size:var(--sp-caption-size);color:var(--sp-muted);font-variant-numeric:tabular-nums}
+.sp-review-files,.sp-reply{margin-top:44px}
+.sp-file-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:var(--sp-line-width) solid var(--sp-line)}
+.sp-file-row:last-of-type{border-bottom:var(--sp-line-width) solid var(--sp-line)}
+.sp-file-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:var(--sp-radius-sm);background:var(--sp-surface);color:var(--sp-ink);flex:none}
+.sp-file-name{display:grid;gap:2px;flex:1;min-width:0}
+.sp-file-name strong{font-weight:500;font-size:var(--sp-control-size);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp-file-name small{font-size:var(--sp-caption-size);color:var(--sp-muted)}
+.sp-file-actions{display:flex;gap:18px;align-items:center}
+.sp-pdf-preview{display:block;width:100%;height:min(78vh,820px);border:var(--sp-line-width) solid var(--sp-line);border-radius:var(--sp-radius-sm);margin:6px 0 14px;background:var(--sp-surface)}
+.sp-mail{border:var(--sp-line-width) solid var(--sp-line);border-radius:var(--sp-radius-md);padding:6px 22px 20px;background:var(--page,#fff)}
+.sp-mail-head{margin:0;display:grid}
+.sp-mail-head>div{display:grid;grid-template-columns:72px minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:var(--sp-line-width) solid var(--sp-line)}
+.sp-mail-head dt{font-size:var(--sp-caption-size);color:var(--sp-muted)}
+.sp-mail-head dd{margin:0;font-size:var(--sp-control-size);overflow-wrap:anywhere}
+.sp-mail-body{white-space:pre-wrap;font-size:var(--sp-body-size);line-height:1.65;padding:18px 0 4px;overflow-wrap:anywhere;color:var(--sp-ink)}
+.sp-attachments{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0;padding:0}
+.sp-attachment{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border:var(--sp-line-width) solid var(--sp-line);border-radius:var(--sp-radius-pill);font-size:var(--sp-caption-size);background:var(--sp-surface)}
+.sp-attachment small{color:var(--sp-muted)}
+.wk-approval .button svg{margin-left:4px}
+.sp-send-warning{color:var(--status-attention-ink)!important;font-weight:500}
+.sp-sent{justify-content:flex-start}
+.sp-sent-mark{display:inline-flex;align-items:center;gap:8px;color:var(--status-success-ink);background:var(--status-success-surface);border-radius:var(--sp-radius-pill);padding:8px 16px;font:500 var(--sp-control-size)/1.4 var(--sp-font);animation:sp-sent-in .45s ease-out both}
+@keyframes sp-sent-in{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.sp-sent-mark{animation:none}}
+.sp-img-wait{display:block;aspect-ratio:400/514;background:var(--sp-surface)}
+
+/* Connections: paste a folder link. */
+.sp-folder-form{display:grid;gap:10px;margin:8px 0 18px}
+.sp-folder-form label{display:grid;gap:4px;font-size:var(--sp-control-size);font-weight:500}
+.sp-folder-form label span{font-weight:400;color:var(--sp-muted);font-size:var(--sp-caption-size)}
+.sp-folder-row{display:flex;gap:10px}
+.sp-folder-row input{flex:1;min-width:0;padding:11px 13px;border:var(--sp-line-width) solid var(--sp-line);border-radius:var(--sp-radius-sm);font:var(--sp-control-size) var(--sp-font);color:var(--sp-ink);background:var(--page,#fff)}
+.sp-folder-row input:focus{outline:var(--sp-focus-width) solid var(--sp-focus);outline-offset:2px}
+.sp-folder-form>.ac-link{justify-self:start}
+.sp-folder-chosen{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:6px 0}
+.sp-folder-chosen .ac-verified{margin:0}
+
+/* Devices. */
+.sp-device-card{margin-top:var(--sp-space-6)}
+.sp-device-head{display:flex;gap:16px;align-items:flex-start}
+.sp-device-head h2{margin-top:0}
+.sp-device-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:var(--sp-radius-md);background:var(--sp-surface);color:var(--sp-ink);flex:none}
+.sp-device-card .ac-actions{align-items:center}
+.sp-device-card .button svg{margin-right:2px}
+.sp-checksums{margin-top:var(--sp-space-6)}
+
+@media(max-width:680px){
+ .sp-empty-state{padding:28px 22px}
+ .sp-folder-row{flex-direction:column}
+ .sp-file-row{flex-wrap:wrap}
+ .sp-file-actions{width:100%;padding-left:52px}
+ .sp-mail{padding:4px 16px 16px}
+ .sp-mail-head>div{grid-template-columns:60px minmax(0,1fr)}
+ .topbar-actions .ac-shell-account:not(.sp-signout){display:none}
+}
+.sp-sent-mark:focus{outline:none}
+.ac-google>.button{margin-top:16px}
+
+/* Attention: real blocks with their labels. */
+.sp-attention-chart{width:100%;height:auto;display:block;font:12px var(--sp-font);fill:var(--sp-muted)}
+.sp-attention-chart line{stroke:var(--sp-line)}
+.sp-blocks{margin-top:44px}
+.sp-block-list{list-style:none;margin:8px 0 0;padding:0}
+.sp-block-list li{display:flex;gap:14px;align-items:center;padding:13px 0;border-bottom:var(--sp-line-width) solid var(--sp-line)}
+.sp-block-dot{width:10px;height:10px;border-radius:50%;flex:none}
+.sp-block-main{display:grid;gap:2px;flex:1;min-width:0}
+.sp-block-main strong{font-weight:500;font-size:var(--sp-control-size)}
+.sp-block-main small{font-size:var(--sp-caption-size);color:var(--sp-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp-block-time{font-size:var(--sp-caption-size);color:var(--sp-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.li-timer-actions{display:flex;gap:10px;justify-content:center}
+@media(max-width:680px){.sp-block-list li{flex-wrap:wrap}.sp-block-time{width:100%;padding-left:24px}}
+.sp-block-chip{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:var(--sp-radius-pill);background:var(--sp-surface);border:var(--sp-line-width) solid var(--sp-line);font:500 11px/1.5 var(--sp-font);color:var(--sp-muted);vertical-align:1px}

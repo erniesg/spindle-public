@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Spindle Windows/Mac capture PREVIEW",
+  "version": "0.1.0",
+  "description": "Explicitly enrolled ordinary-profile DOM companion. No recording before pairing and Start.",
+  "permissions": ["nativeMessaging", "storage", "scripting", "activeTab", "alarms", "declarativeNetRequestWithHostAccess"],
+  "optional_host_permissions": ["http://*/*", "https://*/*", "<all_urls>"],
+  "incognito": "not_allowed",
+  "action": {"default_title": "Capture this tab (Rich consent required)"},
+  "commands": {"_execute_action": {"suggested_key": {"default": "Alt+Shift+S"}}},
+  "options_page": "options.html",
+  "background": {"service_worker": "worker.js", "type": "module"}
+}

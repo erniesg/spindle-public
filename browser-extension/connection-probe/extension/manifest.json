@@ -1,0 +1,8 @@
+{
+  "manifest_version": 3,
+  "name": "Spindle local connection probe",
+  "version": "0.1.0",
+  "description": "Disposable Native Messaging handshake; no activity capture.",
+  "permissions": ["nativeMessaging"],
+  "incognito": "not_allowed"
+}

@@ -1,0 +1,6 @@
+{
+  "clientId": "client_01M5068NP231S1TTFY2FCX8WGN",
+  "issuer": "https://api.workos.com/user_management/client_01KXP33HD63BY3BYYC0BDHZMRB",
+  "jwksUri": "https://api.workos.com/sso/jwks/client_01KXP33HD63BY3BYYC0BDHZMRB",
+  "webRedirectUri": "https://spindle.berlayar.ai/auth/workos/callback"
+}

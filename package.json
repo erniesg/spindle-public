@@ -1,0 +1,22 @@
+{
+  "name": "spindle",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('build', { recursive: true, force: true })\" && tsc && node build/tools/build-assets.js",
+    "test": "npm run build && node --max-old-space-size=256 --test --test-concurrency=1 build/tests/*/*.test.js build/browser-extension/connection-probe/tests/host.test.js"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.1.24",
+    "@types/node": "22.19.3",
+    "playwright-core": "1.58.2",
+    "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "@pdf-lib/fontkit": "1.1.1",
+    "jose": "6.1.3",
+    "pdf-lib": "1.17.1"
+  }
+}

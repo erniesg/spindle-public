@@ -1,0 +1,88 @@
+// Invented Task + scripted provider, real AgentRuntime/SQLite/HTTP/clean Chromium. Not live model acceptance.
+import { chromium } from 'playwright-core';
+import assert from 'node:assert/strict';
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { resolve, join } from 'node:path';
+import { AgentStore } from '../../core/storage/agent-store.js';
+import { AgentRuntime } from '../../core/agent/runtime.js';
+import type { AgentProvider, Decision, ToolDefinition } from '../../core/agent/contracts.js';
+import { startTaskReview } from '../../core/assistant/app.js';
+const output=resolve(process.env.SPINDLE_TASK_REVIEW_OUTPUT??'.local/task-review-browser');await mkdir(output,{recursive:true});
+const executablePath=process.env.SPINDLE_REVIEW_CHROMIUM;if(!executablePath)throw Error('Select an existing clean Chromium executable');
+const ns={workspaceId:'invented-demo',accountId:'fictional-account'};const path=join(output,'agent.sqlite');
+let store=new AgentStore(path);let app=await startTaskReview(store,ns);
+const task=store.admit({...ns,messageId:'invented-request-49',outcome:'Prepare the fictional community workshop request'},30);
+await writeFile(join(output,'request.txt'),'Invented workshop: confirm eligibility and identify a permitted source.');
+const tool:ToolDefinition={name:'request.read',version:'1',capabilities:['read'],effect:'read',inputSchema:{jsonSchema:{type:'object'},parse:v=>v},outputSchema:{jsonSchema:{type:'string'},parse:v=>{if(typeof v!=='string')throw Error('Expected text');return v;}},async invoke(_args,context){return {callId:context.callId,status:'ok',data:await readFile(join(output,'request.txt'),'utf8'),artifacts:[],evidence:[],observations:['Read the actual invented request file']};}};
+const browser=await chromium.launch({executablePath,headless:true,chromiumSandbox:true});
+const context=await browser.newContext({viewport:{width:1280,height:960},recordVideo:{dir:join(output,'raw-video'),size:{width:1280,height:960}}});
+let page=await context.newPage();const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+const deep=()=>`${app.origin}/?task=${task.id}#${app.token}`;
+const check=async(text:string)=>{await page.waitForFunction(value=>document.getElementById('task')?.textContent?.includes(value),text);};
+try {
+ let release!:()=>void;const gate=new Promise<void>(r=>{release=r;});let turns=0;
+ const provider:AgentProvider={id:'scripted-fixture-provider',async next():Promise<Decision>{turns++;if(turns===1)return {kind:'checklist',reason:'Inspected invented request',items:[{id:'requirements',title:'Read the workshop request',state:'done',dependsOn:[]},{id:'source',title:'Locate a permitted supporting source',state:'in_progress',dependsOn:['requirements']},{id:'optional',title:'Optional document not requested',state:'skipped',dependsOn:[]}]};if(turns===2)return {kind:'tool',name:tool.name,args:{}};await gate;if(turns===3)return {kind:'checklist',reason:'Supporting source unavailable',items:[{id:'requirements',title:'Read the workshop request',state:'done',dependsOn:[]},{id:'source',title:'Locate a permitted supporting source',state:'blocked',dependsOn:['requirements'],blocker:'Choose a permitted supporting source to continue.'},{id:'optional',title:'Optional document not requested',state:'skipped',dependsOn:[]}]};throw Error('Choose a permitted supporting source to continue.');}};
+ const run=new AgentRuntime(store,[tool]).run(task.id,provider,5);
+ await page.goto(deep());await check('Current · Locate');
+ assert.equal(new URL(page.url()).hash,'');assert.equal(await page.locator('body').innerText().then(t=>t.includes(app.token)),false);
+ // Polling must preserve the actual interactive nodes, including when task data changes.
+ const taskLink=page.locator('#tasks a').first();await taskLink.focus();
+ await page.evaluate(()=>{(window as unknown as {focusNode:Element|null}).focusNode=document.activeElement;});
+ await page.waitForTimeout(3400);
+ assert.equal(await page.evaluate(()=>document.activeElement===(window as unknown as {focusNode:Element|null}).focusNode),true,'task link focus survives three polls');
+ await page.locator('#task summary').click();await page.locator('#task summary').focus();
+ await page.locator('#task summary').scrollIntoViewIfNeeded();
+ await page.evaluate(()=>{(window as unknown as {focusNode:Element|null}).focusNode=document.activeElement;});
+ const scroll=await page.evaluate(()=>scrollY);
+ store.update(task.id,t=>{t.nextAction='Inspect the updated supporting source';});
+ await check('Inspect the updated supporting source');await page.waitForTimeout(3400);
+ assert.equal(await page.evaluate(()=>document.activeElement===(window as unknown as {focusNode:Element|null}).focusNode),true,'summary focus survives data updates and three polls');
+ assert.equal(await page.locator('#task details').evaluate(n=>(n as HTMLDetailsElement).open),true);
+ assert.equal(await page.evaluate(()=>scrollY),scroll);
+ await page.waitForTimeout(1100);await page.screenshot({path:join(output,'desktop-working.png'),fullPage:true});
+ await page.locator('#task').scrollIntoViewIfNeeded();await page.waitForTimeout(2000);
+ await page.locator('#task summary').focus();
+ await page.evaluate(()=>{(window as unknown as {focusNode:Element|null}).focusNode=document.activeElement;});
+ release();await run;await check('Blocked · Locate');await page.waitForTimeout(3400);
+ assert.equal(await page.evaluate(()=>document.activeElement===(window as unknown as {focusNode:Element|null}).focusNode),true,'summary focus survives checklist and status transitions');
+ assert.equal(await page.locator('#task details').evaluate(n=>(n as HTMLDetailsElement).open),true);
+ await page.close();
+ assert.equal(store.get(task.id).status,'blocked');assert.ok(store.notifications(ns).some(n=>n.kind==='blocked'));
+ page=await context.newPage();await page.goto(deep());await check('Choose a permitted supporting source');
+ await page.waitForTimeout(1200);await page.screenshot({path:join(output,'desktop-blocked.png'),fullPage:true});
+ await page.locator('#task').scrollIntoViewIfNeeded();await page.waitForTimeout(2000);
+ // Close web delivery AND database, then reopen the same durable task. No second admission.
+ await page.close();await app.close();store.close();store=new AgentStore(path);
+ store.recover(task.id);let step=0;
+ await new AgentRuntime(store,[tool]).run(task.id,{id:'scripted-fixture-provider',async next(){step++;return step===1?{kind:'checklist',reason:'Source is now available in invented demonstration',items:[{id:'requirements',title:'Read the workshop request',state:'done',dependsOn:[]},{id:'source',title:'Locate a permitted supporting source',state:'done',dependsOn:['requirements']},{id:'optional',title:'Optional document not requested',state:'skipped',dependsOn:[]}]}:{kind:'ready',result:'Preparation summary assembled for review'};}},3);
+ assert.equal(store.get(task.id).status,'ready');const pending=store.notifications(ns);assert.deepEqual(pending.map(n=>n.kind),['working','ready']);
+ app=await startTaskReview(store,ns);page=await context.newPage();await page.goto(deep());await check('Preparation needs review');await page.waitForTimeout(1300);
+ assert.equal(store.tasks(ns).length,1);assert.equal(store.notifications(ns).length,0);
+ await page.screenshot({path:join(output,'desktop-ready.png'),fullPage:true});
+ await page.locator('#task').scrollIntoViewIfNeeded();await page.waitForTimeout(2000);
+ await page.setViewportSize({width:390,height:844});await page.waitForTimeout(1200);await page.screenshot({path:join(output,'phone-ready.png'),fullPage:true});
+ await page.locator('#task').scrollIntoViewIfNeeded();await page.waitForTimeout(2000);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ // Untrusted request text uses textContent, never HTML; inspect the same SQLite record on both layouts.
+ store.update(task.id,t=>{t.requestedOutcome='<img src=x onerror="alert(1)"> invented request';});await check('<img src=x');assert.equal(await page.locator('#task img').count(),0);
+ await page.close();page=await context.newPage();await page.goto(deep());await check('<img src=x');await page.waitForTimeout(1200);
+ assert.equal(store.notifications(ns).length,0);assert.equal(store.tasks(ns).length,1);assert.deepEqual(errors,[]);
+ // Delay an actual HTTP poll response, then select a different persisted task.
+ const second=store.admit({...ns,messageId:'invented-second-49',outcome:'Prepare the second fictional request'},8);
+ await page.waitForFunction(()=>document.querySelectorAll('#tasks a').length===2);
+ store.update(second.id,t=>{t.status='blocked';t.nextAction='Latest second-task action';t.checklist={revision:1,reason:'Updated after link creation',items:[{id:'latest',title:'Latest second-task checklist',state:'blocked',dependsOn:[]}]};});
+ await page.waitForTimeout(3400);
+ await page.evaluate(()=>{const state=window as unknown as {taskSnapshots:string[]};state.taskSnapshots=[];new MutationObserver(()=>state.taskSnapshots.push(document.getElementById('task')!.textContent??'')).observe(document.getElementById('task')!,{subtree:true,childList:true,characterData:true});});
+ let received!:()=>void;const pendingResponse=new Promise<void>(r=>{received=r;});
+ let resume!:()=>void;const delayed=new Promise<void>(r=>{resume=r;});let intercepted=false;
+ await page.route(`**/api/tasks/${task.id}`,async route=>{if(intercepted){await route.continue();return;}intercepted=true;const response=await route.fetch();received();await delayed;await route.fulfill({response});});
+ await pendingResponse;await page.locator('#tasks a').filter({hasText:second.requestedOutcome}).click();
+ await page.waitForTimeout(200);
+ assert.equal(await page.evaluate(()=>(window as unknown as {taskSnapshots:string[]}).taskSnapshots.some(t=>t.includes('Working on preparation'))),false,'known navigation link never renders its stale first snapshot');
+ await check('Latest second-task checklist');
+ resume();await page.waitForTimeout(3400);await check(second.requestedOutcome);
+ assert.equal(new URL(page.url()).searchParams.get('task'),second.id);
+ await page.unrouteAll({behavior:'wait'});
+ await writeFile(join(output,'journey.json'),JSON.stringify({taskId:task.id,provider:'scripted-fixture-provider',tool:tool.name,observations:store.get(task.id).observations.length,checklistRevision:store.get(task.id).checklist.revision,finalStatus:store.get(task.id).status,notificationsPending:store.notifications(ns).length,taskCount:store.tasks(ns).length,chromium:browser.version(),executablePath,proof:'real SQLite, AgentRuntime, HTTP and browser; fixture provider only; no application or live Google/model/native acceptance'},null,2));
+} finally {await context.close();await browser.close();await app.close();store.close();}
+console.log('PASS real browser desktop/390px, closed-tab transitions, SQLite restart, deep link, visible ACK, dedup and inert text');

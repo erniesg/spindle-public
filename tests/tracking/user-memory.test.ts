@@ -1,0 +1,91 @@
+import {test} from 'node:test';
+import {request as httpRequest} from 'node:http';
+import assert from 'node:assert/strict';
+import {mkdtemp,rm,readFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {randomBytes} from 'node:crypto';
+import {startTrackingServer} from '../../core/tracking/server.js';
+import {AccountClient} from '../../core/account/client.js';
+import {EncryptedStore} from '../../core/tracking/store.js';
+import {syncUserMemory,type UserMemoryState} from '../../core/tracking/user-memory.js';
+import type {UserMemoryAck,UserMemoryPage,UserMemoryMutation} from '../../core/memory/user-protocol.js';
+test('memory state capacity fails explicitly without eviction',()=>{
+ const entry={workspaceId:'workspace',key:'existing',revision:1,seq:1,deleted:true,updatedAt:'2026-01-01T00:00:00.000Z'};
+ const operation={id:'new',workspaceId:'workspace',key:'new-key',expectedRevision:0,action:'forget'};
+ const state:UserMemoryState={entries:Array.from({length:1000},(_,i)=>({...entry,key:String(i)})),sequence:1000,operationReceipts:[]};
+ assert.throws(()=>syncUserMemory(state,'account',{operations:[operation]}),/MEMORY_KEY_BOUND/);assert.equal(state.sequence,1000);
+ state.entries=[];state.operationReceipts=Array.from({length:10000},(_,i)=>({id:String(i),digest:'digest',entry}));
+ assert.throws(()=>syncUserMemory(state,'account',{operations:[operation]}),/MEMORY_RECEIPT_BOUND/);assert.equal(state.entries.length,0);
+});
+test('trusted HTTPS origin keeps loopback binding and requires exact Host/Origin',async()=>{
+ const directory=await mkdtemp(join(tmpdir(),'spindle-tls-')),key=randomBytes(32);
+ for(const origin of ['http://example.test','https://example.test/','https://user:pass@example.test'])await assert.rejects(startTrackingServer(directory,key,0,origin),/PUBLIC_HTTPS_ORIGIN_REQUIRED/);
+ const server=await startTrackingServer(directory,key,0,'https://invented.example');
+ try{
+  assert.match(server.listenOrigin,/^http:\/\/127\.0\.0\.1:/);assert.equal(server.origin,'https://invented.example');
+  const headers={Host:'invented.example',Origin:server.origin,'Content-Type':'application/json'};
+  const response=await new Promise<{status:number;cookie:string}>((resolve,reject)=>{
+   const req=httpRequest(server.listenOrigin+'/register',{method:'POST',headers},res=>{res.resume();res.on('end',()=>resolve({status:res.statusCode!,cookie:res.headers['set-cookie']![0]!}));});
+   req.on('error',reject);req.end(JSON.stringify({name:'invented-tls',password:'invented-password-123'}));
+  });
+  assert.equal(response.status,200);assert.match(response.cookie,/; Secure/);
+  assert.equal((await fetch(server.listenOrigin+'/session',{headers:{Origin:server.origin,'X-Forwarded-Host':'invented.example'}})).status,403);
+ }finally{await server.close();await rm(directory,{recursive:true,force:true});}
+});
+test('device-free account memory: two clients, CAS, replay, tombstone, isolation and encrypted restart',async()=>{
+ const directory=await mkdtemp(join(tmpdir(),'spindle-memory-')),key=randomBytes(32);
+ let server=await startTrackingServer(directory,key);
+ try{
+  const first=new AccountClient(server.origin),second=new AccountClient(server.origin);
+  const identity=await first.signin('invented-memory','invented-password-123',true);
+  assert.deepEqual(await second.signin('invented-memory','invented-password-123'),identity);
+  const put:UserMemoryMutation={id:'put-1',workspaceId:'workspace',key:'style',expectedRevision:0,action:'put',kind:'preference',value:'INVENTED prefer short answers',origin:'inferred',sources:[{id:'source',kind:'conversation',sourceId:'chat-1',workspaceId:'workspace',accountId:identity.id,sha256:'a'.repeat(64),excerpt:'Please keep answers short',observedAt:'2026-01-01T00:00:00.000Z'}]};
+  const sync=(client:AccountClient,operations:unknown[])=>client.request('/user-memory/sync',{operations}) as Promise<UserMemoryAck>;
+  const page=(client:AccountClient,query='workspaceId=workspace&cursor=0')=>client.request('/user-memory/changes?'+query) as Promise<UserMemoryPage>;
+  const initial=await sync(first,[put]);assert.deepEqual(initial.acknowledged,['put-1']);assert.equal(initial.entries[0]!.revision,1);
+  assert.deepEqual(await sync(second,[put]),initial);
+  await assert.rejects(sync(first,[{...put,value:'drift'}]),/409/);
+  assert.deepEqual((await page(second)).entries,initial.entries);
+  const correction={...put,id:'correction',origin:'user',sources:[],value:'INVENTED prefer detailed answers',expectedRevision:1};
+  const race=await Promise.allSettled([sync(first,[correction]),sync(second,[{...correction,id:'competing'}])]);
+  assert.equal(race.filter(r=>r.status==='fulfilled').length,1);assert.equal(race.filter(r=>r.status==='rejected').length,1);
+  const corrected=(await page(first)).entries[0]!;assert.equal(corrected.origin,'user');
+  assert.deepEqual((await sync(first,[{...put,id:'later-inference',expectedRevision:corrected.revision}])).entries,[corrected]);
+  const forget={id:'forget',workspaceId:'workspace',key:'style',expectedRevision:corrected.revision,action:'forget'};
+  const deleted=await sync(second,[forget]);assert.equal(deleted.entries[0]!.deleted,true);assert.equal(deleted.entries[0]!.value,undefined);
+  assert.deepEqual(await sync(second,[forget]),deleted);
+  await assert.rejects(sync(first,[{...put,id:'offline'}]),/409/);
+  await assert.rejects(sync(first,[{...put,id:'inferred-recreate',expectedRevision:deleted.entries[0]!.revision}]),/409/);
+  await sync(first,[{...correction,id:'explicit-recreate',expectedRevision:deleted.entries[0]!.revision}]);
+  const before=await page(first);
+  await assert.rejects(sync(first,[{...correction,id:'batch-new',key:'other',expectedRevision:0},{...correction,id:'batch-stale',expectedRevision:0}]),/409/);
+  assert.deepEqual(await page(first),before);
+  for(const op of [{...put,id:'bad',extra:true},{...put,id:'bad',sources:[]},{...put,id:'bad',sources:[{...put.sources![0],accountId:'other'}]},{...put,id:'bad',key:'x'.repeat(8193)},{...put,id:'bad',expectedRevision:-1}])await assert.rejects(sync(first,[op]),/400/);
+  for(const query of ['workspaceId=workspace&cursor=999','workspaceId=workspace&unexpected=1','workspaceId=workspace&cursor=-1','workspaceId=workspace&limit=51','workspaceId=workspace&cursor=0&cursor=1'])await assert.rejects(page(first,query),/400/);
+  await sync(first,[{id:'before-put',workspaceId:'other-workspace',key:'never',expectedRevision:0,action:'forget'}]);
+  const selected=await page(first,'workspaceId=workspace&cursor=0&limit=1');assert.equal(selected.hasMore,false);assert.ok(selected.cursor>selected.entries[0]!.seq);
+  const foreign=new AccountClient(server.origin);await foreign.signin('invented-foreign','invented-password-123',true);assert.deepEqual((await page(foreign)).entries,[]);
+  const response=await fetch(server.origin+'/session',{headers:{Origin:server.origin}});assert.equal(response.status,401);
+  assert.equal((await fetch(server.origin+'/session',{headers:{Origin:'https://wrong.invalid'}})).status,403);
+  const auth=await fetch(server.origin+'/signin',{method:'POST',headers:{Origin:server.origin,'Content-Type':'application/json'},body:JSON.stringify({name:'invented-memory',password:'invented-password-123'})});
+  const cookie=auth.headers.get('set-cookie')!.split(';')[0]!;
+  const authBody=await auth.json() as {csrf:string};
+  const rawSync=(body:string)=>fetch(server.origin+'/user-memory/sync',{method:'POST',headers:{Origin:server.origin,Cookie:cookie,'X-CSRF-Token':authBody.csrf,'Content-Type':'application/json'},body});
+  assert.equal((await rawSync(JSON.stringify({operations:Array(17).fill(put)}))).status,400);
+  assert.equal((await rawSync(JSON.stringify({operations:[put],padding:'x'.repeat(512000)}))).status,413);
+  const stored=await new EncryptedStore<{accounts:{devices:unknown[]}[]}>(directory,key,()=>({accounts:[]})).transaction(s=>s,false);
+  assert.ok(stored.accounts.every(a=>a.devices.length===0));
+  assert.equal((await fetch(server.origin+'/user-memory/sync',{method:'POST',headers:{Origin:server.origin,Cookie:cookie,'Content-Type':'application/json'},body:'{"operations":[]}'})).status,403);
+  const bytes=await readFile(join(directory,'tracking.enc'));assert.equal(bytes.includes(Buffer.from('INVENTED')),false);
+  await server.close();server=await startTrackingServer(directory,key);
+  const restarted=new AccountClient(server.origin);assert.deepEqual(await restarted.signin('invented-memory','invented-password-123'),identity);
+  assert.deepEqual(await page(restarted),{...before,cursor:selected.cursor});
+  assert.deepEqual(await sync(restarted,[forget]),deleted);
+  await sync(restarted,[{...correction,id:'page-a',key:'page-a',expectedRevision:0},{...correction,id:'page-b',key:'page-b',expectedRevision:0}]);
+  const pages:UserMemoryPage[]=[];let cursor=0;
+  do{const next=await page(restarted,`workspaceId=workspace&cursor=${cursor}&limit=1`);pages.push(next);assert.ok(next.cursor>cursor);cursor=next.cursor;}while(pages.at(-1)!.hasMore);
+  assert.deepEqual(pages.flatMap(p=>p.entries.map(e=>e.key)),['style','page-a','page-b']);
+  await restarted.signout();await assert.rejects(restarted.request('/session'),/SIGNIN_REQUIRED/);
+ }finally{await server.close();await rm(directory,{recursive:true,force:true});}
+});

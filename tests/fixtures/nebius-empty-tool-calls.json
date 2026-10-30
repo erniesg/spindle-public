@@ -1,0 +1,27 @@
+{
+  "kind": "Sanitized actual live response fixture; not full raw wire, no hidden reasoning or headers; for OFFLINE parser regression only",
+  "productionSource": "3ecafbcf1dba92298edbd5db7d2b6e970a72c3ee",
+  "requestSha256": "9b16de4419203eedd7fe30dfbb0d31ca38af5f7ff128711b79749096f1499c12",
+  "response": {
+    "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+    "usage": {
+      "completion_tokens": 458,
+      "prompt_tokens": 555,
+      "total_tokens": 1013,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": null
+    },
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "message": {
+          "content": "{ \"next_action\": { \"kind\": \"tool\", \"name\": \"memory.learn\", \"args\": { \"key\": \"pref_community_grant_conciseness\", \"kind\": \"preference\", \"value\": \"Prefers concise plain-language answers for fictional community grant applications\", \"quote\": \"For fictional community grant applications, I prefer concise plain-language answers.\" } } }",
+          "tool_calls": [],
+          "refusal": null
+        }
+      }
+    ]
+  },
+  "observedFailure": "UNSUPPORTED_CAPABILITY",
+  "limitation": "Unretained raw legacy fields cannot be inferred absent. Empty tool_calls is a verified sufficient rejection cause, not proof it was the only possible raw-field cause."
+}

@@ -1,0 +1,46 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {isAbsolute,join} from 'node:path';
+import {mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {randomBytes} from 'node:crypto';
+import {AccountClient} from '../../core/account/client.js';
+import {EvidenceStore} from '../../core/evidence/store.js';
+import {createUserMemoryApplication} from '../../core/memory/application.js';
+import {UserMemoryStore} from '../../core/memory/user-store.js';
+import type {UserMemoryMutation,UserMemorySourceForget} from '../../core/memory/user-protocol.js';
+import {scripted} from './user-memory-fixture.js';
+const modulePath=process.env.SPINDLE_MEMORY_SERVER_MODULE;
+test('R3-1 actual backend: source-forget offline after peer correction, restart/lost ACK, scrub receipts and reject late new key',{skip:!modulePath},async()=>{
+ if(!isAbsolute(modulePath!))throw Error('ABSOLUTE_SERVER_MODULE_REQUIRED');
+ const url=pathToFileURL(modulePath!);
+ const {startTrackingServer}=await import(url.href);
+ const {EncryptedStore}=await import(new URL('./store.js',url).href);
+ const root=mkdtempSync(join(tmpdir(),'spindle-source-server-')),key=randomBytes(32);
+ let server=await startTrackingServer(join(root,'server'),key);
+ let ea=new EvidenceStore(join(root,'a')),eb=new EvidenceStore(join(root,'b'));
+ let original:UserMemoryMutation|undefined;let loseAck=false;const sent:UserMemorySourceForget[]=[];
+ const account=()=>new AccountClient(server.origin,async(input,init)=>{const path=new URL(String(input)).pathname;
+  if(path==='/user-memory/sync')original??=(JSON.parse(String(init?.body)) as {operations:UserMemoryMutation[]}).operations.find(o=>o.origin==='inferred');
+  if(path==='/user-memory/forget-source'){sent.push(JSON.parse(String(init?.body)) as UserMemorySourceForget);const response=await fetch(input,init);if(loseAck){loseAck=false;await response.body?.cancel();throw Error('INVENTED_LOST_ACK');}return response;}return fetch(input,init);
+ });
+ let aa=account(),ab=new AccountClient(server.origin);
+ const app=(evidence:EvidenceStore,label:string,client:AccountClient)=>createUserMemoryApplication({evidence,evidenceRoot:join(root,label),account:client,workspaceId:'w',provider:scripted()});
+ let a=app(ea,'a',aa),b=app(eb,'b',ab);
+ const on={conversation:true,activity:false,processing:true,sync:true},off={conversation:false,activity:false,processing:false,sync:false};
+ const signin=async()=>{await a.signin('source-sample','Invented-password-98!');await a.drain();await b.signin('source-sample','Invented-password-98!');await b.drain();};
+ try{
+  await a.signin('source-sample','Invented-password-98!',true);await a.drain();await b.signin('source-sample','Invented-password-98!');await b.drain();a.configure(on);await a.drain();b.configure({...off,sync:true});await b.drain();
+  const turn=a.conversation('I prefer tea');await a.drain();await b.drain();assert.equal(b.recall('tea')[0]?.value,'I prefer tea.');
+  b.correct('drink','preference','Prefers coffee',b.recall('tea')[0].revision);await b.drain();await a.drain();assert.equal(a.recall('coffee')[0]?.origin,'user');
+  a.configure(off);await a.drain();a.forgetConversation(turn.id);await a.drain();assert.equal(a.status().pending,1);assert.equal(a.recall('coffee')[0]?.value,'Prefers coffee');
+  await a.stop();ea.close();ea=new EvidenceStore(join(root,'a'));aa=account();a=app(ea,'a',aa);await a.signin('source-sample','Invented-password-98!');await a.drain();loseAck=true;a.configure({...off,sync:true});await a.drain();assert.equal(a.status().pending,1);await a.drain();assert.equal(a.status().pending,0);assert.deepEqual(sent[0],sent[1]);await b.drain();
+  await a.stop();await b.stop();ea.close();eb.close();await server.close();server=await startTrackingServer(join(root,'server'),key);ea=new EvidenceStore(join(root,'a'));eb=new EvidenceStore(join(root,'b'));aa=account();ab=new AccountClient(server.origin);a=app(ea,'a',aa);b=app(eb,'b',ab);await signin();
+  assert.equal(a.recall('coffee')[0]?.value,'Prefers coffee');assert.equal(b.recall('coffee')[0]?.value,'Prefers coffee');assert.deepEqual(a.recall('tea'),[]);assert.deepEqual(b.recall('tea'),[]);
+  const memory=await new EncryptedStore(join(root,'server'),key,()=>({})).transaction((s:{accounts:Array<{memory:unknown}>})=>s.accounts[0].memory,false);
+  assert.equal(JSON.stringify(memory).includes('Prefers tea'),false);assert.equal(JSON.stringify(memory).includes('I prefer tea'),false);
+  await assert.rejects(ab.request('/user-memory/sync',{operations:[{...original!,id:'late-source-new-key',key:'late-tea'}]}),/ACCOUNT_HTTP_409/);
+  const ns={workspaceId:'w',accountId:aa.account!.id};assert.throws(()=>new UserMemoryStore(ea.db).mutate(ns,{key:'local-late',kind:'fact',value:'Prefers tea',origin:'inferred',sources:original!.sources}),/SOURCE_FORGOTTEN/);
+ }finally{await a.stop();await b.stop();ea.close();eb.close();await server.close();rmSync(root,{recursive:true,force:true});}
+});

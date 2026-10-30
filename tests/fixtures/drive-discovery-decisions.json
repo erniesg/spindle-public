@@ -1,0 +1,9 @@
+{
+  "qualification": "Captured af2 decision SHAPES only: private request/root/provider identifiers are replaced with invented fixture references. Not a raw provider response or live acceptance.",
+  "observedFailureCategories": ["source_unavailable / Drive 404: access blocked", "source_unavailable / Invalid Drive metadata"],
+  "decisions": [
+    {"kind":"tool","name":"drive.read","args":{"fileId":"$REQUEST_SNAPSHOT_ARTIFACT_ID"}},
+    {"kind":"tool","name":"drive.list","args":{"folderId":"root"}},
+    {"kind":"tool","name":"drive.list","args":{"folderId":"root"}}
+  ]
+}

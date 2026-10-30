@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "baseUrl": "https://api.nuget.org/v3-flatcontainer/",
+  "packages": [
+    {
+      "id": "microsoft.net.compilers.toolset",
+      "version": "4.11.0",
+      "bytes": 21721010,
+      "sha512": "ryblKybx5/A7ttO9vJGYFORbwuDTN9jhY83bgnQ8P97vsSNjwU9LrQKE0NSqcjWX6joJySPlZuoDW5LXip9CAw=="
+    },
+    {
+      "id": "microsoft.windows.sdk.contracts",
+      "version": "10.0.19041.1",
+      "bytes": 3666788,
+      "sha512": "P2LNEPsF93ANWmUEe7dGTZu6lU/Lg1pS7AmE/WKZBdL8kmI4rGYSOTxi5RGTxeEXpj3qGeGZWMliTmNradXAaA=="
+    },
+    {
+      "id": "microsoft.netframework.referenceassemblies.net48",
+      "version": "1.0.3",
+      "bytes": 20997929,
+      "sha512": "XWKgyeNadNcTQaIVvQB8BrdCNrEar6fo/de1OdQRZ9HFy0jcBSaM8IV5q64ZampsSnC8AlTsACaGZUuoFw41RA=="
+    },
+    {
+      "id": "system.runtime.windowsruntime",
+      "version": "4.6.0",
+      "bytes": 602099,
+      "sha512": "WyPgOkMsddiqPSbgZ5QQoaDUEdTAwZ/devedfpUxGHc3hIZyptrnympSWcbB4pTlIM6A1XW7wrKaoE+k6PaXWw=="
+    }
+  ]
+}
