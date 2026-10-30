@@ -7,8 +7,7 @@ Spindle records where your attention goes (a native Mac/Windows capture app and 
 ## Try it
 
 1. Go to **<https://spindle.berlayar.ai>**.
-2. Sign in with the demo account credentials in **`demo.txt`**, uploaded with the hackathon submission. Follow the demo journey steps in that file. Credentials are deliberately not in this repository.
-3. Email the demo's connected inbox a request, for example an ID photo and a form to fill. Spindle picks it up, prepares the outputs and stops at a draft for you to review. Nothing is sent until you click Send.
+2. Sign in with the demo account credentials in **`demo.txt`**, uploaded with the hackathon submission.
 
 Time tracking and blocking: the Mac app (Apple Silicon test build) and the Chrome extension are at <https://spindle.berlayar.ai/downloads>, with a `SHA256SUMS.txt`. Windows is source-only in this repository.
 
