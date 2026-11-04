@@ -11,6 +11,7 @@
 //                  "contentType":"application/zip","platform":"macos","kind":"desktop","version":"0.3.0",
 //                  "signing":"unsigned","label":"Spindle for Mac (test build)"}]}
 // The expected sha256 must come from the independently reviewed release record; a mismatch aborts.
+// Set CLOUDFLARE_ACCOUNT_ID to your own account ID before running any mode.
 // Credentials: wrangler's own login for put/get; verify reads wrangler's OAuth token in memory only
 // to GET object metadata. Nothing secret is printed or passed in argv.
 import {createHash} from 'node:crypto';
@@ -21,7 +22,10 @@ import {join, dirname, isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {allowlist} from '../src/worker.js';
 
-const ACCOUNT = '5b25778cf6d9821373d913f5236e1606';
+const ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID;
+if (!/^[a-f0-9]{32}$/i.test(ACCOUNT ?? '') || /^0{32}$/.test(ACCOUNT)) {
+  throw Error('CLOUDFLARE_ACCOUNT_ID_REQUIRED');
+}
 const BUCKET = 'spindle-downloads';
 const MANIFEST = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'downloads.manifest.json');
 const PUBLIC_FIELDS = ['platform', 'kind', 'version', 'signing', 'label'];

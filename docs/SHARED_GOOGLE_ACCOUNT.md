@@ -93,7 +93,7 @@ node build/core/tracking/run.js PRIVATE_DATA_DIRECTORY PRIVATE_32_BYTE_KEY 43166
 The existing backend key remains private and separate from its data. No command here creates credentials or config. On the Mac control interface, forward the same port before opening the UI:
 
 ```sh
-ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:43166:127.0.0.1:43166 erniesg-ai-vm
+ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:43166:127.0.0.1:43166 <YOUR_SSH_HOST>
 ```
 
 Open `http://127.0.0.1:43166/connections`, sign in to Spindle, then explicitly connect Google. The Web client needs only the exact redirect URI, not a JavaScript SDK origin. Reuse the existing project/client; do not create a service account, make the folder public or export tokens. The intended authorizing Google account is already saved as a Testing user for the current local setup; do not re-add it. Other configurations require their own applicable approval. It needs Viewer access to the requested folder; if already owner/viewer, no sharing change is needed. Consent is the owner's browser action. Select only the requested folder, then use the metadata-only check. Actual source access and model processing follow the latest explicit owner-selected scope and separate normal processing consent. A completed metadata-only/readonly verification phase is not a permanent prohibition on later explicitly authorized selected-source model work. Readonly never supplies a write grant, and neither connection nor this document grants unrelated-root access or unredacted evidence disclosure. Route/source verification and actual Google testing are separate claims; these instructions do not claim either live success or deployment.

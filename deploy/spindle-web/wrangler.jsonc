@@ -1,3 +1,5 @@
+// Public template: account_id and service_id below are nonfunctional placeholders.
+// Supply real values in a private configuration before any remote operation.
 // Fresh Spindle public origin. Reuses the EXISTING Worker name and custom domain on purpose
 // (inventoried 2026-10-29: assets-only legacy download page, no bindings). Deploy only through
 // `wrangler versions upload` + `wrangler versions deploy` per deploy/README.md so rollback to the
@@ -5,16 +7,16 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "spindle-downloads",
-  "account_id": "5b25778cf6d9821373d913f5236e1606",
+  "account_id": "00000000000000000000000000000000",
   "main": "src/worker.js",
   "compatibility_date": "2026-06-16",
   "workers_dev": false,
   "preview_urls": false,
-  // Identical to the live binding; listed so a deliberate `wrangler deploy` cannot silently unbind it.
+  // Example binding: configure your own domain and bucket before deployment.
   "routes": [{"pattern": "spindle.berlayar.ai", "custom_domain": true}],
   // Request URLs/headers are not logged by default; use `wrangler tail` during verification only.
   "observability": {"enabled": false},
   "r2_buckets": [{"binding": "DOWNLOADS", "bucket_name": "spindle-downloads"}],
-  // Filled with the id printed by step E1 in deploy/README.md (VPC service -> tunnel rucksack-stg -> 127.0.0.1:43180).
-  "vpc_services": [{"binding": "ORIGIN", "service_id": "01a1889a-246f-7f53-a413-541c87c358ed", "remote": true}]
+  // Filled with the id printed by step E1 in deploy/README.md (VPC service -> your private tunnel -> 127.0.0.1:43180).
+  "vpc_services": [{"binding": "ORIGIN", "service_id": "00000000-0000-0000-0000-000000000000", "remote": true}]
 }
