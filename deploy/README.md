@@ -10,7 +10,7 @@ This is one public HTTPS origin, built only from resources that already exist:
 browser ──HTTPS──▶ Cloudflare custom domain spindle.berlayar.ai (existing, Workers-managed DNS + cert)
                     └─ Worker `spindle-downloads` (existing name, new version from deploy/spindle-web)
                         ├─ /downloads/*  → R2 `spindle-downloads` (existing dedicated bucket), manifest-allowlisted keys only
-                        └─ everything else → Workers VPC service → tunnel `rucksack-stg` (existing connector)
+                        └─ everything else → Workers VPC service → your private tunnel (existing connector)
                                               → 127.0.0.1:43180 only → deploy/vm/spindle-production.service (fresh data)
 ```
 
@@ -47,11 +47,13 @@ The compatibility date is supported by the installed workerd. None of these chec
 
 These are not a production rerun script. Each sensitive effect needs its applicable authority and current-state reconciliation before execution; an old approval or a fresh directory is not authority to replace existing production.
 
-Auth is the existing `wrangler login` OAuth for account `5b25778cf6d9821373d913f5236e1606`. Its scopes include workers/workers_scripts/workers_routes write, connectivity admin, zone read and R2 via workers. Never pass tokens in argv or env on the command line.
+This directory is a public deployment template. Before remote operations, supply your own Cloudflare account ID and VPC service ID in a private copy of `spindle-web/wrangler.jsonc`; its checked-in IDs are nonfunctional placeholders. Set `CLOUDFLARE_ACCOUNT_ID` for the download staging tool (32 hexadecimal characters). Keep real deployment configuration outside Git.
+
+Auth uses your own `wrangler login` OAuth. Its scopes include workers/workers_scripts/workers_routes write, connectivity admin, zone read and R2 via workers. Never pass tokens in argv or env on the command line.
 
 | # | Effect | Command | Rollback |
 |---|---|---|---|
-| E1 | Create a private VPC service. Nothing public. | `CLOUDFLARE_ACCOUNT_ID=5b25778cf6d9821373d913f5236e1606 CI=1 wrangler vpc service create spindle-production-origin --type http --tunnel-id 1b7e92d3-5529-4ca9-96b4-8df5f9e63848 --ipv4 127.0.0.1 --http-port 43180`; read back exact tunnel/127.0.0.1/HTTP43180 and HTTPS absent/disabled, then put the id into `spindle-web/wrangler.jsonc` and commit. List before any replay; no duplicate create on unknown outcomes | `wrangler vpc service delete <id>` |
+| E1 | Create a private VPC service. Nothing public. | `CLOUDFLARE_ACCOUNT_ID=<YOUR_CLOUDFLARE_ACCOUNT_ID> CI=1 wrangler vpc service create spindle-production-origin --type http --tunnel-id <YOUR_TUNNEL_ID> --ipv4 127.0.0.1 --http-port 43180`; read back exact tunnel/127.0.0.1/HTTP43180 and HTTPS absent/disabled, then put the id into your private configuration. List before any replay; no duplicate create on unknown outcomes | `wrangler vpc service delete <id>` |
 | E2 | Release checkout and build on the VM, at the product integrator's release head `<R>` | `git -C ~/code/erniesg/spindle fetch origin && git -C ~/code/erniesg/spindle worktree add ~/code/erniesg/spindle-release <R>` then in it `npm ci --ignore-scripts && npm run build` (honour the existing npm lock and reviewed host shim; no package-manager migration) | `git -C ~/code/erniesg/spindle worktree remove ~/code/erniesg/spindle-release` |
 | E3 | Fresh production config and data (0700/0600) | `install -d -m700 ~/.config/spindle/production ~/.local/share/spindle-production`; first confirm the key, budget journal and account data do not exist; create the key using `(umask 077; set -C; head -c 32 /dev/urandom > ~/.config/spindle/production/account.key)`; existing or partial state requires reconciliation, NEVER overwrite/reinitialization; copy `deploy/vm/account-config.example.mjs` to `account-config.mjs`; write `release.json` (`{revision,tree,buildIdentity}` of `<R>`), `google-web-client.json` and `models.mjs` from 60/65's reviewed values. Create the journal with exclusive creation (`set -C`, umask 077), using exactly `{"provider":"nebius","currency":"USD","hardTaskLimit":<TOTAL_APPROVED_BY_60_65_LE_3>,"reservedWorstCase":0,"observedSpend":0,"requests":[]}`; substitute the actually approved total before execution, never recreate/reset an existing journal | Stop the service and move the directories to a dated `.retired` name. Do not delete them without data-owner approval |
 | E4 | Start the origin (loopback only) | `cp deploy/vm/spindle-production.service ~/.config/systemd/user/ && systemctl --user daemon-reload && systemctl --user start spindle-production` | `systemctl --user stop spindle-production` |
@@ -66,7 +68,7 @@ Before E7,65 supplies600-mode `proxy-token` and `client-id-key` under the privat
 
 E3 is create-only. If the key, journal or account data already exists, stop and reconcile/reuse the exact deployment; do not remove it to make initialization succeed. Both files must be exclusive-created in the same guarded shell; retain partial state on failure. Real Google/model/WorkOS config and budget values come from60/65. Start paused; enabling processing requires their actual configuration/budget approval and the working new-account journey, not an inferred config spread override. No owner-only registration window or invite requirement may silently replace the requested new-account use case.
 
-Never run plain `wrangler deploy` with a different config under the name `spindle-downloads`. Never bind `spindle-legacy-backups`, `rucksack-host-offload` or any review bucket. Never enable `workers_dev` or preview URLs.
+Never run plain `wrangler deploy` with a different config under the name `spindle-downloads`. Never bind private backup, offload or review buckets. Never enable `workers_dev` or preview URLs.
 
 ## Verification after E7
 
@@ -88,8 +90,8 @@ Then: register, sign in and log out in a real browser, which needs a `Secure` co
 
 ## Recovery: restore the affected layer, preserve the working app
 
-1. **Worker/download-only failure:** restore the prior working Worker version recorded before that activation, then verify its actual traffic allocation and HTTPS app/catalogue behavior. For the reviewed download-manifest activation, the retained prior version is `fcdeab93-8272-420d-bdbc-0b0a0f63a466`: it preserves the app proxy but has no selected download aliases. Do not stop a healthy Node host, change classification availability, delete approved objects or remove the active VPC service for a download-only rollback.
+1. **Worker/download-only failure:** restore the prior working Worker version recorded before that activation, then verify its actual traffic allocation and HTTPS app/catalogue behavior. For the reviewed download-manifest activation, the retained prior version is `<PRIOR_WORKING_VERSION_ID>` (from the private release record): it preserves the app proxy but has no selected download aliases. Do not stop a healthy Node host, change classification availability, delete approved objects or remove the active VPC service for a download-only rollback.
 2. **Node source/configuration failure:** the sole unit operator normally stops only the owned failed instance, confirms zero writers, restores the exact reviewed prior unit/source/configuration and verifies private token guards plus canonical HTTPS source/account health. Keep classification paused until its custodian has the applicable new-PID approval. Preserve all production data, keys, journals, unknown reservations and QA histories; no lock deletion, fresh-store substitution or blind replay.
 3. **Decommissioning is not rollback.** Deleting the VPC service, moving production data or changing bucket access needs its separate ownership/authority and proof that no live consumer needs it. Never delete the shared tunnel or selected hostname. Preserve the legacy direct-download compatibility decision if considering E8.
 
-Legacy assets-only version `c3dd4a40-6391-4807-b6f1-ebe21f20609a` and its [byte backup](../readiness/ship6h/infra/legacy-live-backup-20261029T1527Z/) remain retained recovery material. Selecting it would hide the working Spindle app; it is not the normal rollback for the current app/download deployment.
+Legacy assets-only version `<LEGACY_ASSETS_VERSION_ID>` (from the private release record) and its [byte backup](../readiness/ship6h/infra/legacy-live-backup-20261029T1527Z/) remain retained recovery material. Selecting it would hide the working Spindle app; it is not the normal rollback for the current app/download deployment.

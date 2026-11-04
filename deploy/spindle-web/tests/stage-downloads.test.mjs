@@ -42,7 +42,7 @@ else if (a[2] === 'get') process.stdout.write(process.env.FAKE_EXISTING === 'con
 else if (a[2] !== 'put') process.exit(2);
 `, {mode: 0o700});
     const result = spawnSync(process.execPath, [stager, 'upload', spec], {
-      encoding: 'utf8', env: {...process.env, HOME: dir, PATH: bin + delimiter + process.env.PATH,
+      encoding: 'utf8', env: {...process.env, CLOUDFLARE_ACCOUNT_ID: 'a'.repeat(32), HOME: dir, PATH: bin + delimiter + process.env.PATH,
         NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --import=${pathToFileURL(preload).href}`,
         FAKE_EXISTING: existing, FAKE_LOG: log},
     });
@@ -59,5 +59,16 @@ else if (a[2] !== 'put') process.exit(2);
       if (existing === 'absent') assert.equal(puts[0][3], `spindle-downloads/releases/${revision}/${sha}/fixture.zip`);
       else assert.match(result.stdout, /no upload/);
     }
+  });
+}
+
+for (const account of ['', 'invalid', '0'.repeat(32)]) {
+  test(`staging rejects missing, invalid or placeholder account: ${account || 'missing'}`, () => {
+    const result = spawnSync(process.execPath, [stager, 'plan', 'nonexistent-spec.json'], {
+      encoding: 'utf8', env: {...process.env, CLOUDFLARE_ACCOUNT_ID: account},
+    });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /CLOUDFLARE_ACCOUNT_ID_REQUIRED/);
+    assert.doesNotMatch(result.stderr, /ENOENT/);
   });
 }
